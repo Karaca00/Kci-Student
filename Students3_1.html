@@ -180,6 +180,13 @@
             max-width: 600px; /* เพิ่มความกว้าง modal เพื่อรองรับช่องคะแนน */
             position: relative;
             animation: fadeIn 0.3s ease-out; /* แอนิเมชันตอนเปิด */
+            transition: max-width 0.3s ease; /* เพิ่ม transition สำหรับ max-width */
+        }
+
+        /* New: Expanded modal content for edit mode */
+        .modal-content.expanded-edit-mode {
+            max-width: 900px; /* Increase width for edit mode */
+            width: 95%; /* Adjust width for responsiveness */
         }
 
         .modal-content h3 {
@@ -303,6 +310,90 @@
             background-color: #5a6268;
         }
 
+        /* New styles for editable student details */
+        .student-detail-display, .student-detail-edit {
+            margin-bottom: 10px;
+        }
+
+        /* New: Grid layout for student details edit section */
+        #studentDetailsEdit {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Two columns, flexible width */
+            gap: 15px; /* Spacing between grid items */
+            margin-top: 20px; /* Add some top margin */
+        }
+
+        #studentDetailsEdit .edit-field-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        #studentDetailsEdit .edit-field-item label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        #studentDetailsEdit .edit-field-item input[type="text"],
+        #studentDetailsEdit .edit-field-item select,
+        #studentDetailsEdit .edit-field-item input[type="tel"] {
+            width: 100%; /* Make inputs take full width of their grid item */
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box; /* Include padding/border in width calculation */
+        }
+
+        .edit-student-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .edit-student-buttons button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .edit-student-buttons .edit-btn {
+            background-color: #ffc107; /* Yellow for edit */
+            color: #333;
+        }
+        .edit-student-buttons .edit-btn:hover {
+            background-color: #e0a800;
+        }
+        .edit-student-buttons .save-edit-btn {
+            background-color: #28a745; /* Green for save */
+            color: white;
+        }
+        .edit-student-buttons .save-edit-btn:hover {
+            background-color: #218838;
+        }
+        .edit-student-buttons .cancel-edit-btn {
+            background-color: #dc3545; /* Red for cancel */
+            color: white;
+        }
+        .edit-student-buttons .cancel-edit-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* Hide specific sections based on editing mode */
+        .view-mode .student-detail-edit,
+        .edit-mode .student-detail-display,
+        .edit-mode .edit-btn {
+            display: none;
+        }
+        .view-mode .save-edit-btn,
+        .view-mode .cancel-edit-btn {
+            display: none;
+        }
 
         /* Responsive adjustments for smaller screens */
         @media (max-width: 768px) {
@@ -331,6 +422,9 @@
                 width: 95%;
                 padding: 20px;
             }
+            .modal-content.expanded-edit-mode {
+                max-width: 95%; /* Make it take more space on smaller screens */
+            }
             .close-button {
                 font-size: 1.8em;
                 top: 10px;
@@ -339,6 +433,9 @@
             .score-input-grid {
                 grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); /* ปรับคอลัมน์ใน modal เล็กน้อย */
                 gap: 10px;
+            }
+            #studentDetailsEdit {
+                grid-template-columns: 1fr; /* Stack columns on very small screens */
             }
         }
 
@@ -385,6 +482,7 @@
                 <tr>
                     <th>เลขที่</th>
                     <th>รหัสนักเรียน</th>
+                    <th>คำนำหน้า</th>
                     <th>ชื่อ - นามสกุล</th>
                     <th>สถานะ</th>
                     <th>รายละเอียด</th>
@@ -426,12 +524,60 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h3 id="modalStudentName"></h3>
-            <p><strong>รหัสนักเรียน:</strong> <span id="modalStudentId"></span></p>
-            <p><strong>ชั้นปี:</strong> <span id="modalStudentGrade"></span></p>
-            <p><strong>ห้องเรียน:</strong> <span id="modalStudentClass"></span></p>
-            <p><strong>สถานะ:</strong> <span id="modalStudentStatus"></span></p>
-            <p><strong>วันเกิด:</strong> <span id="modalStudentDob"></span></p>
-            <p><strong>เบอร์โทรศัพท์:</strong> <span id="modalStudentPhone"></span></p>
+
+            <div id="studentDetailsView" class="student-detail-display view-mode">
+                <p><strong>รหัสนักเรียน:</strong> <span id="modalStudentId"></span></p>
+                <p><strong>ชั้นปี:</strong> <span id="modalStudentGrade"></span></p>
+                <p><strong>ห้องเรียน:</strong> <span id="modalStudentClass"></span></p>
+                <p><strong>สถานะ:</strong> <span id="modalStudentStatus"></span></p>
+                <p><strong>วันเกิด:</strong> <span id="modalStudentDob"></span></p>
+                <p><strong>เบอร์โทรศัพท์:</strong> <span id="modalStudentPhone"></span></p>
+            </div>
+
+            <div id="studentDetailsEdit" class="student-detail-edit edit-mode" style="display: none;">
+                <div class="edit-field-item">
+                    <label for="editStudentId">รหัสนักเรียน:</label>
+                    <input type="text" id="editStudentId" placeholder="รหัสนักเรียน">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editPrefix">คำนำหน้า:</label>
+                    <select id="editPrefix">
+                        <option value="เด็กชาย">เด็กชาย</option>
+                        <option value="นาย">นาย</option>
+                        <option value="นางสาว">นางสาว</option>
+                    </select>
+                </div>
+                <div class="edit-field-item">
+                    <label for="editName">ชื่อ - นามสกุล:</label>
+                    <input type="text" id="editName" placeholder="ชื่อ - นามสกุล">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editGrade">ชั้นปี:</label>
+                    <input type="text" id="editGrade" placeholder="ชั้นปี">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editClass">ห้องเรียน:</label>
+                    <input type="text" id="editClass" placeholder="ห้องเรียน">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editStatus">สถานะ:</label>
+                    <input type="text" id="editStatus" placeholder="สถานะ">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editDob">วันเกิด:</label>
+                    <input type="text" id="editDob" placeholder="วันเกิด (เช่น 01 มกราคม 2545)">
+                </div>
+                <div class="edit-field-item">
+                    <label for="editPhone">เบอร์โทรศัพท์:</label>
+                    <input type="tel" id="editPhone" placeholder="เบอร์โทรศัพท์">
+                </div>
+            </div>
+
+            <div class="edit-student-buttons">
+                <button class="edit-btn" id="editStudentInfoBtn">แก้ไขข้อมูล</button>
+                <button class="save-edit-btn" id="saveStudentInfoBtn" style="display: none;">บันทึกข้อมูล</button>
+                <button class="cancel-edit-btn" id="cancelStudentInfoBtn" style="display: none;">ยกเลิก</button>
+            </div>
 
             <div class="score-editing-section">
                 <h4>แก้ไขค่าห้องรายเดือนของนักเรียน <span id="currentDateTime" style="font-size: 0.8em; color: #777;"></span></h4>
@@ -500,36 +646,36 @@
     <script type="module">
         // ข้อมูลนักเรียนสำหรับห้อง 3/1
         const studentsData = [
-            { id: "15446", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
-            { id: "15447", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
-            { id: "15449", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890" },
-            { id: "ST004", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST005", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST006", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST007", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST008", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST009", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST010", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST011", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST012", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST013", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST014", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST015", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST016", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST017", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST018", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST019", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST020", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST021", name: "นักเรียน 21", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST022", name: "นักเรียน 22", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST023", name: "นักเรียน 23", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST024", name: "นักเรียน 24", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST025", name: "นักเรียน 25", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST026", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST027", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST028", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST029", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST030", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
+            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
+            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
+            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890" },
+            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST023", prefix: "นาย", name: "นักเรียน 23", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST024", prefix: "นาย", name: "นักเรียน 24", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST025", prefix: "นาย", name: "นักเรียน 25", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST026", prefix: "นาย", name: "นักเรียน 26", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST027", prefix: "นาย", name: "นักเรียน 27", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
         ];
 
         // ข้อมูลคะแนนนักเรียนสำหรับห้อง 3/1 (ปรับปรุงให้เป็นรายเดือน) - จะถูก Overwrite ด้วยข้อมูลจาก Firebase
@@ -556,20 +702,18 @@
         function initializeDefaultScores(studentId) {
             studentScores[studentId] = {};
             months.forEach(month => {
-                studentScores[studentId][month] = (month === "พฤษภาคม") ? 25 : 0; // Default May to 25, others to 0
+                studentScores[studentId][month] = (month === "พฤษภาคม") ? 0 : 0;
             });
         }
 
         // Function to load scores from Firebase for a specific student
         async function loadScoresFromFirebase(studentId) {
             try {
-                // ดึงเอกสารจาก collection 'studentMonthlyScores' โดยใช้ studentId เป็น Document ID
                 const docRef = db.collection("studentMonthlyScores").doc(studentId);
                 const docSnap = await docRef.get();
 
                 if (docSnap.exists) {
                     const data = docSnap.data();
-                    // Merge data from Firebase, ensuring all months are present
                     studentScores[studentId] = {};
                     months.forEach(month => {
                         studentScores[studentId][month] = data.scores[month] !== undefined ? data.scores[month] : 0;
@@ -591,7 +735,7 @@
         // Function to load all student scores at once (for initial render and table updates)
         async function loadAllStudentScores() {
             for (const student of studentsData) {
-                await loadScoresFromFirebase(student.id); // Load each student's scores
+                await loadScoresFromFirebase(student.id);
             }
         }
 
@@ -599,7 +743,8 @@
         const modalOverlay = document.getElementById('studentDetailModal');
         const closeButton = document.querySelector('.close-button');
 
-        // รับอ้างอิงถึงส่วนที่จะแสดงข้อมูลใน Modal
+        // รับอ้างอิงถึงส่วนที่จะแสดงข้อมูลใน Modal (View Mode)
+        const studentDetailsView = document.getElementById('studentDetailsView');
         const modalStudentName = document.getElementById('modalStudentName');
         const modalStudentId = document.getElementById('modalStudentId');
         const modalStudentGrade = document.getElementById('modalStudentGrade');
@@ -608,10 +753,26 @@
         const modalStudentDob = document.getElementById('modalStudentDob');
         const modalStudentPhone = document.getElementById('modalStudentPhone');
 
+        // รับอ้างอิงถึงส่วนที่จะแก้ไขข้อมูลใน Modal (Edit Mode)
+        const studentDetailsEdit = document.getElementById('studentDetailsEdit');
+        const editStudentId = document.getElementById('editStudentId'); // New: Reference to student ID input
+        const editPrefix = document.getElementById('editPrefix');
+        const editName = document.getElementById('editName');
+        const editGrade = document.getElementById('editGrade');
+        const editClass = document.getElementById('editClass');
+        const editStatus = document.getElementById('editStatus');
+        const editDob = document.getElementById('editDob');
+        const editPhone = document.getElementById('editPhone');
+
+        // ปุ่มสำหรับแก้ไขข้อมูลนักเรียน
+        const editStudentInfoBtn = document.getElementById('editStudentInfoBtn');
+        const saveStudentInfoBtn = document.getElementById('saveStudentInfoBtn');
+        const cancelStudentInfoBtn = document.getElementById('cancelStudentInfoBtn');
+
+
         // รับอ้างอิงถึง input fields ของคะแนนใน Modal
         const scoreInputFields = {};
         months.forEach(month => {
-            // Mapping Thai month names to English prefixes for input IDs
             const monthPrefixMap = {
                 "พฤษภาคม": "May", "มิถุนายน": "Jun", "กรกฎาคม": "Jul",
                 "สิงหาคม": "Aug", "กันยายน": "Sep", "ตุลาคม": "Oct",
@@ -624,12 +785,12 @@
 
         const saveScoresBtn = document.getElementById('saveScoresBtn');
         const cancelScoresBtn = document.getElementById('cancelScoresBtn');
-        const currentDateTimeSpan = document.getElementById('currentDateTime'); // รับอ้างอิงถึง span สำหรับวันที่/เวลา
+        const currentDateTimeSpan = document.getElementById('currentDateTime');
         
         // Elements for password verification
         const adminPasswordInput = document.getElementById('adminPasswordInput');
         const passwordErrorMessage = document.getElementById('passwordErrorMessage');
-        const ADMIN_PASSWORD = "301"; // Define the admin password
+        const ADMIN_PASSWORD = "301";
 
 
         // รับอ้างอิงถึงองค์ประกอบตารางและปุ่มสลับ
@@ -640,18 +801,33 @@
         const showStudentListBtn = document.getElementById('showStudentListBtn');
         const showStudentScoresBtn = document.getElementById('showStudentScoresBtn');
 
+        let currentStudent = null; // Store the currently viewed/edited student object
+
         // ฟังก์ชันสำหรับเปิด Modal
         async function openModal(studentId) {
-            const student = studentsData.find(s => s.id === studentId); // ค้นหานักเรียนจาก array
-            if (student) {
-                // Populate student details
-                modalStudentName.textContent = `ข้อมูลนักเรียน: ${student.name}`;
-                modalStudentId.textContent = student.id;
-                modalStudentGrade.textContent = student.grade;
-                modalStudentClass.textContent = student.class;
-                modalStudentStatus.textContent = student.status;
-                modalStudentDob.textContent = student.dob;
-                modalStudentPhone.textContent = student.phone;
+            currentStudent = studentsData.find(s => s.id === studentId); // ค้นหานักเรียนจาก array
+            if (currentStudent) {
+                // Populate student details for View Mode
+                modalStudentName.textContent = `ข้อมูลนักเรียน: ${currentStudent.prefix}${currentStudent.name}`;
+                modalStudentId.textContent = currentStudent.id;
+                modalStudentGrade.textContent = currentStudent.grade;
+                modalStudentClass.textContent = currentStudent.class;
+                modalStudentStatus.textContent = currentStudent.status;
+                modalStudentDob.textContent = currentStudent.dob;
+                modalStudentPhone.textContent = currentStudent.phone;
+
+                // Populate student details for Edit Mode (hidden by default)
+                editStudentId.value = currentStudent.id; // Populate edit field with current student ID
+                editPrefix.value = currentStudent.prefix;
+                editName.value = currentStudent.name;
+                editGrade.value = currentStudent.grade;
+                editClass.value = currentStudent.class;
+                editStatus.value = currentStudent.status;
+                editDob.value = currentStudent.dob;
+                editPhone.value = currentStudent.phone;
+
+                // Switch to view mode initially
+                toggleEditMode(false);
 
                 // Load individual student scores from Firebase before populating modal
                 await loadScoresFromFirebase(studentId); 
@@ -694,6 +870,95 @@
         function closeModal() {
             modalOverlay.style.display = 'none';
             delete modalOverlay.dataset.currentStudentId; // Clear stored student ID
+            currentStudent = null; // Clear current student reference
+            modalOverlay.querySelector('.modal-content').classList.remove('expanded-edit-mode'); // Ensure expanded class is removed
+        }
+
+        // ฟังก์ชันสลับโหมดดู/แก้ไขข้อมูลนักเรียน
+        function toggleEditMode(isEditing) {
+            if (isEditing) {
+                studentDetailsView.style.display = 'none';
+                studentDetailsEdit.style.display = 'grid'; // Change to grid for edit mode
+                editStudentInfoBtn.style.display = 'none';
+                saveStudentInfoBtn.style.display = 'inline-block';
+                cancelStudentInfoBtn.style.display = 'inline-block';
+                modalOverlay.querySelector('.modal-content').classList.add('expanded-edit-mode'); // Add class to expand modal
+            } else {
+                studentDetailsView.style.display = 'block';
+                studentDetailsEdit.style.display = 'none';
+                editStudentInfoBtn.style.display = 'inline-block';
+                saveStudentInfoBtn.style.display = 'none';
+                cancelStudentInfoBtn.style.display = 'none';
+                modalOverlay.querySelector('.modal-content').classList.remove('expanded-edit-mode'); // Remove class when not editing
+            }
+        }
+
+        // ฟังก์ชันสำหรับบันทึกข้อมูลนักเรียนที่แก้ไข (ใน studentsData array เท่านั้น)
+        function saveStudentInfo() {
+            const enteredPassword = adminPasswordInput.value;
+            if (enteredPassword !== ADMIN_PASSWORD) {
+                passwordErrorMessage.textContent = "รหัสผ่านไม่ถูกต้อง! โปรดลองอีกครั้ง";
+                passwordErrorMessage.style.color = "red";
+                return;
+            } else {
+                passwordErrorMessage.textContent = "";
+            }
+
+            if (currentStudent) {
+                const oldStudentId = currentStudent.id;
+                const newStudentId = editStudentId.value.trim(); // Get new ID from input
+
+                // Check if newStudentId is unique, or if it's the same as the old ID
+                const isIdTaken = studentsData.some(s => s.id === newStudentId && s.id !== oldStudentId);
+                if (isIdTaken) {
+                    passwordErrorMessage.textContent = "รหัสนักเรียนนี้มีอยู่แล้ว! โปรดใช้รหัสอื่น";
+                    passwordErrorMessage.style.color = "red";
+                    return;
+                }
+
+                // Update the currentStudent object with values from input fields
+                currentStudent.prefix = editPrefix.value;
+                currentStudent.name = editName.value;
+                currentStudent.grade = editGrade.value;
+                currentStudent.class = editClass.value;
+                currentStudent.status = editStatus.value;
+                currentStudent.dob = editDob.value;
+                currentStudent.phone = editPhone.value;
+                
+                // Update the student ID
+                if (oldStudentId !== newStudentId) {
+                    currentStudent.id = newStudentId;
+
+                    // Update studentScores object to reflect the new ID
+                    if (studentScores[oldStudentId]) {
+                        studentScores[newStudentId] = studentScores[oldStudentId];
+                        delete studentScores[oldStudentId];
+                    } else {
+                        // If no scores existed for the old ID, ensure new ID has default scores.
+                        initializeDefaultScores(newStudentId);
+                    }
+                }
+
+                // Re-populate modal view fields with updated data
+                modalStudentName.textContent = `ข้อมูลนักเรียน: ${currentStudent.prefix}${currentStudent.name}`;
+                modalStudentId.textContent = currentStudent.id; // Update display with new ID
+                modalStudentGrade.textContent = currentStudent.grade;
+                modalStudentClass.textContent = currentStudent.class;
+                modalStudentStatus.textContent = currentStudent.status;
+                modalStudentDob.textContent = currentStudent.dob;
+                modalStudentPhone.textContent = currentStudent.phone;
+
+                passwordErrorMessage.textContent = "บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว!";
+                passwordErrorMessage.style.color = "green";
+
+                renderStudentList(); // Re-render the main student list table to reflect changes
+                renderStudentScores(); // Re-render score table to reflect changes, especially if ID changed.
+                toggleEditMode(false); // Switch back to view mode
+                setTimeout(() => { // Clear message after a short delay
+                    passwordErrorMessage.textContent = "";
+                    passwordErrorMessage.style.color = "red"; // Reset color
+                }, 2000);
+            }
         }
 
         // ฟังก์ชันสำหรับบันทึกคะแนนรายเดือนลง Firebase
@@ -701,6 +966,7 @@
             const enteredPassword = adminPasswordInput.value;
             if (enteredPassword !== ADMIN_PASSWORD) {
                 passwordErrorMessage.textContent = "รหัสผ่านไม่ถูกต้อง! โปรดลองอีกครั้ง";
+                passwordErrorMessage.style.color = "red";
                 return; 
             } else {
                 passwordErrorMessage.textContent = ""; 
@@ -711,6 +977,7 @@
             if (!studentIdToSave || !student) {
                 console.error("No student ID found for saving scores or student data missing.");
                 passwordErrorMessage.textContent = "ไม่พบข้อมูลนักเรียนสำหรับบันทึกค่าห้อง";
+                passwordErrorMessage.style.color = "red";
                 return;
             }
 
@@ -722,6 +989,7 @@
                     const scoreValue = parseInt(inputElement.value);
                     if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
                         passwordErrorMessage.textContent = `คะแนนเดือน ${month} ต้องเป็นตัวเลขระหว่าง 0 ถึง 100`;
+                        passwordErrorMessage.style.color = "red";
                         hasInvalidScore = true;
                         return; 
                     }
@@ -734,26 +1002,24 @@
             }
 
             try {
-                // บันทึกข้อมูลไปยัง Firestore
-                // ใช้ set() with { merge: true } เพื่ออัปเดตเฉพาะ field 'scores' และสร้าง Document หากยังไม่มี
                 await db.collection("studentMonthlyScores").doc(studentIdToSave).set({
-                    studentName: student.name, // บันทึกชื่อนักเรียนด้วยเผื่อในอนาคต
+                    studentName: student.name,
                     scores: newScores,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // บันทึกเวลาที่อัปเดต
-                }, { merge: true }); // สำคัญ: ใช้ merge: true เพื่อไม่ให้เขียนทับข้อมูลอื่นใน Document
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
 
                 console.log(`Scores for ${studentIdToSave} saved to Firebase successfully.`);
                 passwordErrorMessage.textContent = "บันทึกค่าห้องเรียบร้อยแล้ว!";
-                passwordErrorMessage.style.color = "green"; // เปลี่ยนสีข้อความเป็นสีเขียวเมื่อสำเร็จ
+                passwordErrorMessage.style.color = "green";
 
-                // อัปเดตข้อมูลใน studentScores object ที่เก็บใน JavaScript ด้วยข้อมูลล่าสุดที่บันทึก
                 studentScores[studentIdToSave] = newScores;
 
-                renderStudentScores(); // Re-render the score table to show updated scores
-                setTimeout(closeModal, 1500); // ปิด modal หลังจาก 1.5 วินาที เพื่อให้ผู้ใช้เห็นข้อความสำเร็จ
+                renderStudentScores();
+                setTimeout(closeModal, 1500);
             } catch (error) {
                 console.error('Error saving scores to Firebase:', error);
                 passwordErrorMessage.textContent = `เกิดข้อผิดพลาดในการบันทึกค่าห้อง: ${error.message}`;
+                passwordErrorMessage.style.color = "red";
             }
         }
 
@@ -767,6 +1033,7 @@
                 row.innerHTML = `
                     <td>${rowNum++}</td>
                     <td>${student.id}</td>
+                    <td>${student.prefix}</td>
                     <td>${student.name}</td>
                     <td>${student.status}</td>
                     <td><button class="details-btn" data-student-id="${student.id}">ดูรายละเอียด</button></td>
@@ -787,23 +1054,22 @@
 
             // โหลดข้อมูลทั้งหมดจาก Firebase ก่อน Render ตารางคะแนน
             await loadAllStudentScores(); 
-
+            
             let rowNum = 1;
             studentsData.forEach(student => {
-                const scores = studentScores[student.id] || {}; // Use data from the updated studentScores object
+                const scores = studentScores[student.id] || {};
                 let totalScore = 0;
                 
                 const row = scoreTableBody.insertRow();
                 const studentDataHtml = `
                     <td>${rowNum++}</td>
                     <td>${student.id}</td>
-                    <td>${student.name}</td>
-                `;
+                    <td>${student.prefix}${student.name}</td> `;
                 let monthScoresHtml = '';
                 months.forEach(month => {
                     const score = scores[month] !== undefined ? scores[month] : '-';
                     monthScoresHtml += `<td>${score}</td>`;
-                    totalScore += (score !== '-' ? parseInt(score) : 0); // เพิ่มคะแนนที่ไม่ใช่ '-'
+                    totalScore += (score !== '-' ? parseInt(score) : 0);
                 });
                 
                 row.innerHTML = studentDataHtml + monthScoresHtml + `<td id="totalScore-${student.id}">${totalScore}</td>`;
@@ -819,8 +1085,17 @@
             closeButton.addEventListener('click', closeModal);
             modalOverlay.addEventListener('click', (event) => {
                 if (event.target === modalOverlay) {
-                    closeModal();
+                    // closeModal(); // Don't close if clicking inside modal-content
                 }
+            });
+
+            // Event listeners for student info editing
+            editStudentInfoBtn.addEventListener('click', () => toggleEditMode(true));
+            saveStudentInfoBtn.addEventListener('click', saveStudentInfo);
+            cancelStudentInfoBtn.addEventListener('click', () => {
+                toggleEditMode(false); // Switch back to view mode
+                adminPasswordInput.value = ''; // Clear password
+                passwordErrorMessage.textContent = ''; // Clear error message
             });
 
             saveScoresBtn.addEventListener('click', saveMonthlyScores);
@@ -831,7 +1106,7 @@
                 scoreTableContainer.style.display = 'none';
                 showStudentListBtn.classList.add('active');
                 showStudentScoresBtn.classList.remove('active');
-                renderStudentList(); // Re-render to ensure fresh data/event listeners
+                renderStudentList();
             });
 
             showStudentScoresBtn.addEventListener('click', () => {
@@ -839,7 +1114,7 @@
                 scoreTableContainer.style.display = 'block';
                 showStudentScoresBtn.classList.add('active');
                 showStudentListBtn.classList.remove('active');
-                renderStudentScores(); // Render scores table when clicked (will re-load from Firebase)
+                renderStudentScores();
             });
         });
     </script>
