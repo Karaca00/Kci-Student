@@ -487,7 +487,7 @@
                     <p id="passwordErrorMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
                 </div>
                 <div class="score-modal-actions">
-                    <button class="save-btn" id="saveScoresBtn">บันทึกคะแนน</button>
+                    <button class="save-btn" id="saveScoresBtn">บันทึกค่าห้อง</button>
                     <button class="cancel-btn" id="cancelScoresBtn">ยกเลิก</button>
                 </div>
             </div>
@@ -710,7 +710,7 @@
             const student = studentsData.find(s => s.id === studentIdToSave);
             if (!studentIdToSave || !student) {
                 console.error("No student ID found for saving scores or student data missing.");
-                passwordErrorMessage.textContent = "ไม่พบข้อมูลนักเรียนสำหรับบันทึกคะแนน";
+                passwordErrorMessage.textContent = "ไม่พบข้อมูลนักเรียนสำหรับบันทึกค่าห้อง";
                 return;
             }
 
@@ -743,7 +743,7 @@
                 }, { merge: true }); // สำคัญ: ใช้ merge: true เพื่อไม่ให้เขียนทับข้อมูลอื่นใน Document
 
                 console.log(`Scores for ${studentIdToSave} saved to Firebase successfully.`);
-                passwordErrorMessage.textContent = "บันทึกคะแนนเรียบร้อยแล้ว!";
+                passwordErrorMessage.textContent = "บันทึกค่าห้องเรียบร้อยแล้ว!";
                 passwordErrorMessage.style.color = "green"; // เปลี่ยนสีข้อความเป็นสีเขียวเมื่อสำเร็จ
 
                 // อัปเดตข้อมูลใน studentScores object ที่เก็บใน JavaScript ด้วยข้อมูลล่าสุดที่บันทึก
@@ -753,7 +753,7 @@
                 setTimeout(closeModal, 1500); // ปิด modal หลังจาก 1.5 วินาที เพื่อให้ผู้ใช้เห็นข้อความสำเร็จ
             } catch (error) {
                 console.error('Error saving scores to Firebase:', error);
-                passwordErrorMessage.textContent = `เกิดข้อผิดพลาดในการบันทึกคะแนน: ${error.message}`;
+                passwordErrorMessage.textContent = `เกิดข้อผิดพลาดในการบันทึกค่าห้อง: ${error.message}`;
             }
         }
 
