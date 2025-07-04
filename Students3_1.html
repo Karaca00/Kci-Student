@@ -651,6 +651,8 @@
 
     <script type="module">
         // Helper function to extract student number from ID
+        // Note: This function is now primarily used for initial data population if studentNumber is not present,
+        // or for ID formats like "ST001" to derive a number.
         function getStudentNumberFromId(id) {
             if (id.startsWith("ST")) {
                 return parseInt(id.substring(2));
@@ -688,9 +690,9 @@
             { id: "ST026", prefix: "นาย", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 26 },
             { id: "ST027", prefix: "นาย", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 27 },
             { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 28 },
-            { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 29 },
+            { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
             { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 30 }
-        ].map(s => ({ ...s, studentNumber: getStudentNumberFromId(s.id) })); // Initialize studentNumber
+        ].map(s => ({ ...s, studentNumber: s.studentNumber || getStudentNumberFromId(s.id) })); // Initialize studentNumber from data or derive
 
         // ข้อมูลคะแนนนักเรียนสำหรับห้อง 3/1 (จะถูก Overwrite ด้วยข้อมูลจาก Firebase)
         const studentScores = {};
@@ -762,7 +764,8 @@
                 studentsData.length = 0; // Clear the existing hardcoded data
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    studentsData.push({ ...data, studentNumber: getStudentNumberFromId(data.id) });
+                    // *** แก้ไขตรงนี้: ดึงค่า studentNumber โดยตรงจากข้อมูล Firebase ***
+                    studentsData.push({ ...data, studentNumber: data.studentNumber || getStudentNumberFromId(data.id) });
                 });
                 console.log("All student details loaded from Firebase.");
                 // Sort studentsData by studentNumber for consistent display
@@ -810,7 +813,7 @@
                         { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
                         { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
                         { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
-                    ].map((s, index) => ({ ...s, studentNumber: index + 1 })); // Assign sequential studentNumber
+                    ].map((s, index) => ({ ...s, studentNumber: (s.studentNumber !== undefined ? s.studentNumber : index + 1) })); // Assign sequential studentNumber if not present
                     
                     for (const student of initialStudents) { 
                         await db.collection("studentDetails").doc(student.id).set(student);
