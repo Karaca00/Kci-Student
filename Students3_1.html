@@ -337,6 +337,7 @@
         }
 
         #studentDetailsEdit .edit-field-item input[type="text"],
+        #studentDetailsEdit .edit-field-item input[type="number"], /* Added for student number */
         #studentDetailsEdit .edit-field-item select,
         #studentDetailsEdit .edit-field-item input[type="tel"] {
             width: 100%; /* Make inputs take full width of their grid item */
@@ -526,6 +527,7 @@
             <h3 id="modalStudentName"></h3>
 
             <div id="studentDetailsView" class="student-detail-display view-mode">
+                <p><strong>เลขที่:</strong> <span id="modalStudentNumber"></span></p>
                 <p><strong>รหัสนักเรียน:</strong> <span id="modalStudentId"></span></p>
                 <p><strong>ชั้นปี:</strong> <span id="modalStudentGrade"></span></p>
                 <p><strong>ห้องเรียน:</strong> <span id="modalStudentClass"></span></p>
@@ -535,6 +537,10 @@
             </div>
 
             <div id="studentDetailsEdit" class="student-detail-edit edit-mode" style="display: none;">
+                <div class="edit-field-item">
+                    <label for="editStudentNumber">เลขที่:</label>
+                    <input type="number" id="editStudentNumber" placeholder="เลขที่นักเรียน" min="1">
+                </div>
                 <div class="edit-field-item">
                     <label for="editStudentId">รหัสนักเรียน:</label>
                     <input type="text" id="editStudentId" placeholder="รหัสนักเรียน">
@@ -644,39 +650,47 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
     <script type="module">
+        // Helper function to extract student number from ID
+        function getStudentNumberFromId(id) {
+            if (id.startsWith("ST")) {
+                return parseInt(id.substring(2));
+            }
+            return parseInt(id);
+        }
+
         // ข้อมูลนักเรียนสำหรับห้อง 3/1 (เริ่มต้น - จะถูกแทนที่ด้วยข้อมูลจาก Firebase)
         const studentsData = [
-            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
-            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
-            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890" },
-            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST023", prefix: "นาย", name: "นักเรียน 23", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST024", prefix: "นาย", name: "นักเรียน 24", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST025", prefix: "นาย", name: "นักเรียน 25", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST026", prefix: "นาย", name: "นักเรียน 26", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST027", prefix: "นาย", name: "นักเรียน 27", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
-        ];
+            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560", studentNumber: 1 },
+            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789", studentNumber: 2 },
+            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890", studentNumber: 3 },
+            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 4 },
+            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 5 },
+            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 6 },
+            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 7 },
+            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 8 },
+            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 9 },
+            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 10 },
+            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 11 },
+            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 12 },
+            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 13 },
+            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 14 },
+            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 15 },
+            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 16 },
+            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 17 },
+            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 18 },
+            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 19 },
+            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 20 },
+            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 21 },
+            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 22 },
+            { id: "ST023", prefix: "นาย", name: "นักเรียน 23", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 23 },
+            { id: "ST024", prefix: "นาย", name: "นักเรียน 24", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 24 },
+            { id: "ST025", prefix: "นาย", name: "นักเรียน 25", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 25 },
+            { id: "ST026", prefix: "นาย", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 26 },
+            { id: "ST027", prefix: "นาย", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 27 },
+            { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 28 },
+            { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 29 },
+            { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 30 }
+        ].map(s => ({ ...s, studentNumber: getStudentNumberFromId(s.id) })); // Initialize studentNumber
 
         // ข้อมูลคะแนนนักเรียนสำหรับห้อง 3/1 (จะถูก Overwrite ด้วยข้อมูลจาก Firebase)
         const studentScores = {};
@@ -721,7 +735,7 @@
                     console.log(`Scores for ${studentId} loaded from Firebase.`);
                 } else {
                     console.log(`No scores found in Firebase for ${studentId}. Initializing with defaults.`);
-                    initializeDefaultScores(studentId);
+                    initializeDefaultScores(studentId); // Initialize for the current student
                 }
             } catch (e) {
                 console.error(`Error loading scores for ${studentId} from Firebase:`, e);
@@ -747,15 +761,12 @@
                 const snapshot = await db.collection("studentDetails").get();
                 studentsData.length = 0; // Clear the existing hardcoded data
                 snapshot.forEach(doc => {
-                    studentsData.push(doc.data());
+                    const data = doc.data();
+                    studentsData.push({ ...data, studentNumber: getStudentNumberFromId(data.id) });
                 });
                 console.log("All student details loaded from Firebase.");
-                // Sort studentsData by ID or student number for consistent display
-                studentsData.sort((a, b) => {
-                    const idA = parseInt(a.id.replace('ST', '') || a.id);
-                    const idB = parseInt(b.id.replace('ST', '') || b.id);
-                    return idA - idB;
-                });
+                // Sort studentsData by studentNumber for consistent display
+                studentsData.sort((a, b) => a.studentNumber - b.studentNumber);
             } catch (e) {
                 console.error("Error loading student details from Firebase:", e);
                 // If error, you might want to handle it, e.g., display a message to the user
@@ -799,8 +810,9 @@
                         { id: "ST028", prefix: "นาย", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
                         { id: "ST029", prefix: "นาย", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
                         { id: "ST030", prefix: "นาย", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
-                    ]; // Use a copy or redefine if original studentsData needs to be preserved
-                    for (const student of initialStudents) { // Use the hardcoded studentsData initially
+                    ].map((s, index) => ({ ...s, studentNumber: index + 1 })); // Assign sequential studentNumber
+                    
+                    for (const student of initialStudents) { 
                         await db.collection("studentDetails").doc(student.id).set(student);
                     }
                     console.log("Initial student details populated to Firebase.");
@@ -819,6 +831,7 @@
 
         // รับอ้างอิงถึงส่วนที่จะแสดงข้อมูลใน Modal (View Mode)
         const studentDetailsView = document.getElementById('studentDetailsView');
+        const modalStudentNumber = document.getElementById('modalStudentNumber'); // New
         const modalStudentName = document.getElementById('modalStudentName');
         const modalStudentId = document.getElementById('modalStudentId');
         const modalStudentGrade = document.getElementById('modalStudentGrade');
@@ -829,7 +842,8 @@
 
         // รับอ้างอิงถึงส่วนที่จะแก้ไขข้อมูลใน Modal (Edit Mode)
         const studentDetailsEdit = document.getElementById('studentDetailsEdit');
-        const editStudentId = document.getElementById('editStudentId'); // New: Reference to student ID input
+        const editStudentNumber = document.getElementById('editStudentNumber'); // New
+        const editStudentId = document.getElementById('editStudentId');
         const editPrefix = document.getElementById('editPrefix');
         const editName = document.getElementById('editName');
         const editGrade = document.getElementById('editGrade');
@@ -883,6 +897,7 @@
             if (currentStudent) {
                 // Populate student details for View Mode
                 modalStudentName.textContent = `ข้อมูลนักเรียน: ${currentStudent.prefix}${currentStudent.name}`;
+                modalStudentNumber.textContent = currentStudent.studentNumber; // New
                 modalStudentId.textContent = currentStudent.id;
                 modalStudentGrade.textContent = currentStudent.grade;
                 modalStudentClass.textContent = currentStudent.class;
@@ -891,7 +906,8 @@
                 modalStudentPhone.textContent = currentStudent.phone;
 
                 // Populate student details for Edit Mode (hidden by default)
-                editStudentId.value = currentStudent.id; // Populate edit field with current student ID
+                editStudentNumber.value = currentStudent.studentNumber; // New
+                editStudentId.value = currentStudent.id;
                 editPrefix.value = currentStudent.prefix;
                 editName.value = currentStudent.name;
                 editGrade.value = currentStudent.grade;
@@ -930,6 +946,7 @@
             } else {
                 console.error('Student data not found for ID:', studentId);
                 modalStudentName.textContent = `ข้อมูลนักเรียน: ไม่พบข้อมูล`;
+                modalStudentNumber.textContent = ""; // New
                 modalStudentId.textContent = studentId;
                 modalStudentGrade.textContent = "-";
                 modalStudentClass.textContent = "-";
@@ -980,7 +997,15 @@
 
             if (currentStudent) {
                 const oldStudentId = currentStudent.id;
+                const oldStudentNumber = currentStudent.studentNumber; // Get old student number
                 const newStudentId = editStudentId.value.trim();
+                const newStudentNumber = parseInt(editStudentNumber.value); // Get new student number
+
+                if (isNaN(newStudentNumber) || newStudentNumber <= 0) {
+                    passwordErrorMessage.textContent = "เลขที่นักเรียนต้องเป็นตัวเลขและมากกว่า 0";
+                    passwordErrorMessage.style.color = "red";
+                    return;
+                }
 
                 // Check if newStudentId is unique, or if it's the same as the old ID
                 const isIdTaken = studentsData.some(s => s.id === newStudentId && s.id !== oldStudentId);
@@ -990,9 +1015,19 @@
                     return;
                 }
 
+                // Check if newStudentNumber is unique, or if it's the same as the old number
+                const isStudentNumberTaken = studentsData.some(s => s.studentNumber === newStudentNumber && s.id !== oldStudentId);
+                if (isStudentNumberTaken) {
+                    passwordErrorMessage.textContent = "เลขที่นักเรียนนี้มีอยู่แล้ว! โปรดใช้เลขที่อื่น";
+                    passwordErrorMessage.style.color = "red";
+                    return;
+                }
+
+
                 // Create a temporary object with the new student details
                 const updatedStudentDetails = {
                     id: newStudentId, // Use new ID
+                    studentNumber: newStudentNumber, // New: Use new student number
                     prefix: editPrefix.value,
                     name: editName.value,
                     grade: editGrade.value,
@@ -1046,11 +1081,7 @@
                     }
 
                     // Re-sort the local studentsData array after update/change
-                    studentsData.sort((a, b) => {
-                        const idA = parseInt(a.id.replace('ST', '') || a.id);
-                        const idB = parseInt(b.id.replace('ST', '') || b.id);
-                        return idA - idB;
-                    });
+                    studentsData.sort((a, b) => a.studentNumber - b.studentNumber);
 
 
                     // Update the local studentScores object for the new ID
@@ -1069,6 +1100,7 @@
 
                     // Re-populate modal view fields with updated data
                     modalStudentName.textContent = `ข้อมูลนักเรียน: ${currentStudent.prefix}${currentStudent.name}`;
+                    modalStudentNumber.textContent = currentStudent.studentNumber; // New
                     modalStudentId.textContent = currentStudent.id;
                     modalStudentGrade.textContent = currentStudent.grade;
                     modalStudentClass.textContent = currentStudent.class;
@@ -1161,11 +1193,10 @@
         // ฟังก์ชันสำหรับสร้างและแสดงตารางรายชื่อนักเรียน
         function renderStudentList() {
             studentListTableBody.innerHTML = ''; // Clear old data
-            let rowNum = 1;
             studentsData.forEach(student => {
                 const row = studentListTableBody.insertRow();
                 row.innerHTML = `
-                    <td>${rowNum++}</td>
+                    <td>${student.studentNumber}</td>
                     <td>${student.id}</td>
                     <td>${student.prefix}</td>
                     <td>${student.name}</td>
@@ -1189,14 +1220,13 @@
             // โหลดข้อมูลทั้งหมดจาก Firebase ก่อน Render ตารางคะแนน
             await loadAllStudentScores(); 
             
-            let rowNum = 1;
             studentsData.forEach(student => {
                 const scores = studentScores[student.id] || {};
                 let totalScore = 0;
                 
                 const row = scoreTableBody.insertRow();
                 const studentDataHtml = `
-                    <td>${rowNum++}</td>
+                    <td>${student.studentNumber}</td>
                     <td>${student.id}</td>
                     <td>${student.prefix}${student.name}</td> `;
                 let monthScoresHtml = '';
