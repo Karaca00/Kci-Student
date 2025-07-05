@@ -544,6 +544,98 @@
             padding: 12px 15px;
             border-top: 2px solid #ccc; /* Stronger border above total */
         }
+
+        /* Styles for Settings Page */
+        .settings-container {
+            width: 90%;
+            max-width: 800px;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .settings-container h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .settings-button {
+            background-color: #dc3545; /* Red for destructive action */
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .settings-button:hover {
+            background-color: #c82333;
+        }
+
+        /* Styles for Admin Password Modal (for clearing history) */
+        #adminClearHistoryModal .modal-content {
+            max-width: 400px;
+            text-align: center;
+        }
+
+        #adminClearHistoryModal .modal-content label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #adminClearHistoryModal .modal-content input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            text-align: center;
+        }
+
+        #adminClearHistoryModal .modal-content .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 0 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        #adminClearHistoryModal .modal-content .modal-actions .confirm-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        #adminClearHistoryModal .modal-content .modal-actions .confirm-btn:hover {
+            background-color: #218838;
+        }
+
+        #adminClearHistoryModal .modal-content .modal-actions .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        #adminClearHistoryModal .modal-content .modal-actions .cancel-btn:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
@@ -566,6 +658,8 @@
         <button id="showStudentScoresBtn" class="toggle-btn">ค่าห้องของนักเรียน</button>
         <button id="showStudentScoresBtnAll" class="toggle-btn">ค่าห้องของนักเรียนทั้งหมด</button>
         <button id="showStudentFeeSummaryBtn" class="toggle-btn">สรุปค่าห้องของนักเรียน</button>
+        <button id="ScoresHistoryBtn" class="toggle-btn">ประวัติการบันทึก</button>
+        <button id="SettingBtn" class="toggle-btn">ตั้งค่า</button>
     </div>
 
     <div id="studentListTableContainer" class="table-container">
@@ -621,6 +715,32 @@
                 <!-- Total row will be added by JS -->
             </tfoot>
         </table>
+    </div>
+
+    <!-- New: Save History Table Container -->
+    <div id="saveHistoryTableContainer" class="table-container" style="display:none;">
+        <h2>ประวัติการบันทึก</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>รหัสนักเรียน</th>
+                    <th>ชื่อ - นามสกุล</th>
+                    <th>รายละเอียด</th>
+                    <th>จำนวนค่าห้องที่เปลี่ยนแปลง</th>
+                    <th>เวลาที่บันทึก</th>
+                </tr>
+            </thead>
+            <tbody id="saveHistoryTableBody">
+                <!-- History rows will be added by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- New: Settings Container -->
+    <div id="settingsContainer" class="settings-container" style="display:none;">
+        <h2>ตั้งค่า</h2>
+        <button id="clearHistoryBtn" class="settings-button">ล้างประวัติการบันทึก</button>
     </div>
 
     <!-- Student Detail Modal (for general student info) -->
@@ -754,7 +874,7 @@
     </div>
 
     <div id="allStudentsWeeklyScoresMainContainer" class="table-container" style="display:none;">
-        <h4>ค่าห้องประจำสัปดาห์ของนักเรียนทุกคนสำหรับ <span id="allStudentsWeeklyModalMonthName"></span></h4>
+        <h4>ค่าห้องประจำสัปดาห์ของนักเรียนทุกคนประจำเดือน <span id="allStudentsWeeklyModalMonthName"></span></h4>
         <div style="overflow-x: auto;">
             <table id="allStudentsWeeklyScoresTable">
                 <thead>
@@ -784,6 +904,22 @@
         </div>
     </div>
 
+    <!-- Admin Password Confirmation Modal for Clearing History -->
+    <div id="adminClearHistoryModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="closeAdminClearHistoryModalBtn">&times;</span>
+            <h3>ยืนยันการล้างประวัติ</h3>
+            <p>คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการบันทึกทั้งหมด?</p>
+            <label for="clearHistoryAdminPasswordInput">รหัสผ่านแอดมิน:</label>
+            <input type="password" id="clearHistoryAdminPasswordInput" placeholder="กรอกรหัสผ่านเพื่อยืนยัน">
+            <p id="clearHistoryPasswordErrorMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
+            <div class="modal-actions">
+                <button class="confirm-btn" id="confirmClearHistoryBtn">ยืนยัน</button>
+                <button class="cancel-btn" id="cancelClearHistoryBtn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script type="module">
@@ -797,7 +933,7 @@
             return parseInt(id);
         }
 
-        // ข้อมูลนักเรียนสำหรับห้อง 3/1 (เริ่มต้น - จะถูกแทนที่ด้วยข้อมูลจาก Firebase)
+        // Student data for Class 3/1 (initial - will be overwritten by Firebase data)
         const initialStudents = [
             { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
             { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
@@ -833,14 +969,14 @@
 
         const studentsData = initialStudents.map(s => ({ ...s, studentNumber: s.studentNumber !== undefined ? s.studentNumber : (initialStudents.indexOf(s) + 1) })); // Initialize studentNumber from data or derive
 
-        // ข้อมูลคะแนนนักเรียนสำหรับห้อง 3/1 (จะถูก Overwrite ด้วยข้อมูลจาก Firebase)
+        // Student scores data for Class 3/1 (will be overwritten by Firebase data)
         const studentScores = {}; // This will now store monthly totals (if needed) or can be removed
         const months = ["พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม", "มกราคม", "กุมภาพันธ์", "มีนาคม"];
         const numWeeksInMonth = 5; // Assuming max 5 weeks for any month's weekly scores
 
         // *** Firebase Configuration ***
-        // โปรดแทนที่ค่าต่อไปนี้ด้วยข้อมูลการกำหนดค่า Firebase ที่แท้จริงของคุณ!
-        // คุณสามารถค้นหาข้อมูลนี้ได้จาก Firebase Console -> Project settings -> Your apps.
+        // Please replace the following values with your actual Firebase configuration!
+        // You can find this information in Firebase Console -> Project settings -> Your apps.
         const firebaseConfig = {
             apiKey: "AIzaSyBPLPEig2DuVmPBnp654vtLved2x373o64",
             authDomain: "tester-5ead2.firebaseapp.com",
@@ -859,6 +995,7 @@
         const studentsCollection = db.collection('students3_1'); // Collection for student general details
         const monthlyScoresCollection = db.collection('studentMonthlyScores'); // This collection might be less used now
         const weeklyScoresCollection = db.collection('studentWeeklyScores'); // Collection for weekly scores
+        const saveHistoryCollection = db.collection('saveHistory'); // New: Collection for save history
 
         // Admin password (for demonstration, use Firebase Security Rules in production)
         const ADMIN_PASSWORD = "301";
@@ -906,6 +1043,8 @@
         let showStudentScoresBtn;
         let showStudentScoresBtnAll; // New button for all student scores
         let showStudentFeeSummaryBtn; // New button for fee summary
+        let ScoresHistoryBtn; // New button for save history
+        let SettingBtn; // New button for settings
         let studentListTableContainer;
         let scoreTableContainer;
         let studentFeeSummaryTableContainer; // New container for fee summary
@@ -913,6 +1052,10 @@
         let feeSummaryTableHeader; // New header for fee summary
         let feeSummaryTableFooter; // New footer for fee summary
         let feeSummaryTitle; // New: Reference to the title for summary table
+        let saveHistoryTableContainer; // New container for save history
+        let saveHistoryTableBody; // New tbody for save history
+        let settingsContainer; // New: Settings container
+        let clearHistoryBtn; // New: Clear history button
 
         let monthlySelectionModal;
         let closeMonthlySelectionModalBtn;
@@ -946,17 +1089,31 @@
         let saveAllStudentsWeeklyScoresBtn;
         let cancelAllStudentsWeeklyScoresBtn;
 
+        let adminClearHistoryModal; // New: Admin password modal for clearing history
+        let closeAdminClearHistoryModalBtn;
+        let clearHistoryAdminPasswordInput;
+        let clearHistoryPasswordErrorMessage;
+        let confirmClearHistoryBtn;
+        let cancelClearHistoryBtn;
+
 
         let currentWeeklyScores; // Declare at a scope accessible by loadWeeklyScoresFromFirebase and renderWeeklyScores
+
+        // Map to store student names for quick lookup in history table
+        const studentNameMap = new Map();
 
 
         async function loadStudentsFromFirebase() {
             try {
                 const snapshot = await db.collection("students3_1").get(); // Use students3_1 collection
                 studentsData.length = 0; // Clear the existing hardcoded data
+                studentNameMap.clear(); // Clear existing map
+
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    studentsData.push({ ...data, studentNumber: data.studentNumber || getStudentNumberFromId(data.id) });
+                    const student = { ...data, studentNumber: data.studentNumber || getStudentNumberFromId(data.id) };
+                    studentsData.push(student);
+                    studentNameMap.set(student.id, `${student.prefix} ${student.name}`); // Populate name map
                 });
                 console.log("All student details loaded from Firebase.");
                 // Sort studentsData by studentNumber for consistent display
@@ -1150,6 +1307,19 @@
             };
 
             try {
+                // Fetch current student details to compare for changes
+                const oldStudentDoc = await studentsCollection.doc(oldStudentId).get();
+                const oldStudentDetails = oldStudentDoc.exists ? oldStudentDoc.data() : {};
+
+                let detailsChanged = false;
+                // Simple comparison for changes in general info
+                for (const key in updatedStudentDetails) {
+                    if (updatedStudentDetails[key] !== oldStudentDetails[key]) {
+                        detailsChanged = true;
+                        break;
+                    }
+                }
+
                 // Handle ID change: delete old doc, create new doc
                 if (oldStudentId !== newStudentId) {
                     await studentsCollection.doc(oldStudentId).delete();
@@ -1157,32 +1327,47 @@
                     // Also move monthly/weekly scores if ID changes
                     await moveFirebaseDoc(monthlyScoresCollection, oldStudentId, newStudentId);
                     await moveFirebaseCollection(weeklyScoresCollection.doc(oldStudentId).collection('months'), weeklyScoresCollection.doc(newStudentId).collection('months'));
+                    detailsChanged = true; // ID change is also a change in details
                 }
                 
-                await studentsCollection.doc(newStudentId).set(updatedStudentDetails);
-                console.log(`Student details for ${newStudentId} saved/updated in Firebase.`);
+                // Only save and log if there were actual changes
+                if (detailsChanged) {
+                    await studentsCollection.doc(newStudentId).set(updatedStudentDetails);
+                    console.log(`Student details for ${newStudentId} saved/updated in Firebase.`);
 
-                // Update local studentsData array
-                const studentIndex = studentsData.findIndex(s => s.id === oldStudentId);
-                if (studentIndex > -1) {
-                    studentsData[studentIndex] = { ...updatedStudentDetails };
+                    // Update local studentsData array
+                    const studentIndex = studentsData.findIndex(s => s.id === oldStudentId);
+                    if (studentIndex > -1) {
+                        studentsData[studentIndex] = { ...updatedStudentDetails };
+                    } else {
+                        studentsData.push({ ...updatedStudentDetails });
+                    }
+                    studentsData.sort((a, b) => a.studentNumber - b.studentNumber); // Re-sort locally
+                    studentNameMap.set(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`); // Update name map
+
+                    currentStudentId = newStudentId; // Update current ID if it changed
+
+                    passwordErrorMessage.textContent = "บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว!";
+                    passwordErrorMessage.style.color = "green";
+
+                    renderStudentList(); // Re-render main student list
+                    renderStudentScores(); // Re-render main score table
+                    toggleEditMode(false);
+                    setTimeout(() => {
+                        passwordErrorMessage.textContent = "";
+                        passwordErrorMessage.style.color = "red";
+                    }, 2000);
+
+                    // Log the save action
+                    logSaveAction(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, "แก้ไขข้อมูลนักเรียน", null); // No amount change for general info
                 } else {
-                    studentsData.push({ ...updatedStudentDetails });
+                    passwordErrorMessage.textContent = "ไม่มีการเปลี่ยนแปลงข้อมูลนักเรียน";
+                    passwordErrorMessage.style.color = "orange";
+                    setTimeout(() => {
+                        passwordErrorMessage.textContent = "";
+                        passwordErrorMessage.style.color = "red";
+                    }, 2000);
                 }
-                studentsData.sort((a, b) => a.studentNumber - b.studentNumber); // Re-sort locally
-
-                currentStudentId = newStudentId; // Update current ID if it changed
-
-                passwordErrorMessage.textContent = "บันทึกข้อมูลนักเรียนเรียบร้อยแล้ว!";
-                passwordErrorMessage.style.color = "green";
-
-                renderStudentList(); // Re-render main student list
-                renderStudentScores(); // Re-render main score table
-                toggleEditMode(false);
-                setTimeout(() => {
-                    passwordErrorMessage.textContent = "";
-                    passwordErrorMessage.style.color = "red";
-                }, 2000);
 
             } catch (error) {
                 console.error("Error saving student info to Firebase:", error);
@@ -1332,22 +1517,48 @@
             }
 
             const scoresToSave = {};
+            let newMonthlyTotal = 0; // Calculate new total for logging
             const numWeeks = 5; // Max 5 weeks
             for (let i = 1; i <= numWeeks; i++) {
                 const scoreInput = document.getElementById(`weeklyScore${i}`);
                 if (scoreInput) {
-                    scoresToSave[`week${i}`] = parseInt(scoreInput.value) || 0;
+                    const score = parseInt(scoreInput.value) || 0;
+                    scoresToSave[`week${i}`] = score;
+                    newMonthlyTotal += score;
                 }
             }
 
             try {
-                await weeklyScoresCollection.doc(currentWeeklyStudentId)
-                                            .collection('months')
-                                            .doc(currentWeeklyMonth)
-                                            .set(scoresToSave, { merge: true });
-                alert('บันทึกค่าห้องรายสัปดาห์สำเร็จ!');
-                weeklyScoresModal.style.display = 'none'; // Hide modal
-                weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
+                // Fetch old scores to calculate change
+                const oldScoresDoc = await weeklyScoresCollection.doc(currentWeeklyStudentId)
+                                                               .collection('months')
+                                                               .doc(currentWeeklyMonth)
+                                                               .get();
+                const oldScores = oldScoresDoc.exists ? oldScoresDoc.data() : {};
+                let oldMonthlyTotal = 0;
+                for (let i = 1; i <= numWeeks; i++) {
+                    oldMonthlyTotal += (oldScores[`week${i}`] !== undefined ? oldScores[`week${i}`] : 0);
+                }
+
+                // Only save and log if scores have changed
+                if (areScoresDifferent(scoresToSave, oldScores)) {
+                    await weeklyScoresCollection.doc(currentWeeklyStudentId)
+                                                .collection('months')
+                                                .doc(currentWeeklyMonth)
+                                                .set(scoresToSave, { merge: true });
+                    alert('บันทึกค่าห้องรายสัปดาห์สำเร็จ!');
+                    weeklyScoresModal.style.display = 'none'; // Hide modal
+                    weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
+
+                    const studentName = studentNameMap.get(currentWeeklyStudentId) || 'ไม่พบชื่อนักเรียน';
+                    const amountChange = newMonthlyTotal - oldMonthlyTotal;
+                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange);
+                } else {
+                    alert('ไม่มีการเปลี่ยนแปลงค่าห้อง');
+                    weeklyScoresModal.style.display = 'none'; // Hide modal
+                    weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
+                }
+
             } catch (error) {
                 console.error("Error saving weekly scores:", error);
                 alert('เกิดข้อผิดพลาดในการบันทึกค่าห้องรายสัปดาห์: ' + error.message);
@@ -1363,6 +1574,8 @@
             scoreTableContainer.style.display = 'none';
             allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
             studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+            saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+            settingsContainer.style.display = 'none'; // Hide settings container
 
             // Show the all students month selection modal
             allStudentsMonthSelectionModal.style.display = 'flex';
@@ -1405,6 +1618,8 @@
             studentListTableContainer.style.display = 'none';
             scoreTableContainer.style.display = 'none';
             studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+            saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+            settingsContainer.style.display = 'none'; // Hide settings container
             allStudentsWeeklyScoresMainContainer.style.display = 'block';
 
             allStudentsWeeklyScoresTableBody.innerHTML = ''; // Clear existing rows
@@ -1468,6 +1683,18 @@
             allStudentsWeeklyAdminPasswordSectionAll.style.display = 'flex';
         }
 
+        // Helper function to compare two score objects
+        function areScoresDifferent(newScores, oldScores) {
+            const weeks = ['week1', 'week2', 'week3', 'week4', 'week5'];
+            for (const week of weeks) {
+                // Compare values, treating undefined as 0 for consistency
+                if ((newScores[week] || 0) !== (oldScores[week] || 0)) {
+                    return true; // Scores are different
+                }
+            }
+            return false; // Scores are the same
+        }
+
         async function saveAllStudentsWeeklyScores() {
             const password = allStudentsWeeklyAdminPasswordInputAll.value;
             if (password !== ADMIN_PASSWORD) {
@@ -1483,6 +1710,23 @@
 
             const batch = db.batch();
             const rows = allStudentsWeeklyScoresTableBody.querySelectorAll('tr');
+            const savePromises = []; // To hold promises for logging individual student saves
+
+            // Re-fetch current scores to compare against, as the map might be from initial load
+            const studentsSnapshot = await studentsCollection.orderBy('studentNumber').get();
+            const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const weeklyScoresPromises = allStudents.map(student =>
+                weeklyScoresCollection.doc(student.id).collection('months').doc(currentAllStudentsWeeklyScoresMonth).get()
+            );
+            const weeklyScoresDocs = await Promise.all(weeklyScoresPromises);
+            const originalStudentScoresMap = new Map();
+            weeklyScoresDocs.forEach(doc => {
+                if (doc.exists) {
+                    originalStudentScoresMap.set(doc.ref.parent.parent.id, doc.data());
+                }
+            });
+
+            let changesMade = false; // Flag to track if any changes were actually saved
 
             rows.forEach(row => {
                 const studentId = row.dataset.studentId;
@@ -1492,23 +1736,52 @@
                     scoresToSave[input.dataset.week] = parseInt(input.value) || 0;
                 });
 
-                const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(currentAllStudentsWeeklyScoresMonth);
-                batch.set(docRef, scoresToSave, { merge: true });
+                const originalScores = originalStudentScoresMap.get(studentId) || {};
+
+                // Only proceed if scores have actually changed
+                if (areScoresDifferent(scoresToSave, originalScores)) {
+                    const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(currentAllStudentsWeeklyScoresMonth);
+                    batch.set(docRef, scoresToSave, { merge: true });
+                    changesMade = true; // Set flag to true if any change is detected
+
+                    const studentName = studentNameMap.get(studentId) || 'ไม่พบชื่อนักเรียน';
+                    let newMonthlyTotalForLog = 0;
+                    let oldMonthlyTotalForLog = 0;
+                    for (let i = 1; i <= numWeeksInMonth; i++) {
+                        newMonthlyTotalForLog += (scoresToSave[`week${i}`] !== undefined ? scoresToSave[`week${i}`] : 0);
+                        oldMonthlyTotalForLog += (originalScores[`week${i}`] !== undefined ? originalScores[`week${i}`] : 0);
+                    }
+                    const amountChange = newMonthlyTotalForLog - oldMonthlyTotalForLog;
+                    savePromises.push(logSaveAction(studentId, studentName, `บันทึกค่าห้องทั้งหมดเดือน${currentAllStudentsWeeklyScoresMonth}`, amountChange));
+                }
             });
 
             try {
-                await batch.commit();
-                alert('บันทึกค่าห้องของนักเรียนทั้งหมดสำเร็จ!');
-                // After saving, go back to the default student list view
+                if (changesMade) {
+                    await batch.commit();
+                    // Wait for all individual log entries to complete
+                    await Promise.all(savePromises);
+
+                    alert('บันทึกค่าห้องของนักเรียนทั้งหมดสำเร็จ!');
+                } else {
+                    alert('ไม่มีการเปลี่ยนแปลงค่าห้องของนักเรียน');
+                }
+                
+                // After saving (or if no changes), go back to the default student list view
                 studentListTableContainer.style.display = 'block';
                 scoreTableContainer.style.display = 'none';
                 allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Hide this container
                 studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+                settingsContainer.style.display = 'none'; // Hide settings container
                 showStudentListBtn.classList.add('active');
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList(); // Re-render to ensure fresh data/event listeners
+
             }
             catch (error) {
                 console.error("Error saving all students' weekly scores:", error);
@@ -1523,6 +1796,8 @@
             scoreTableContainer.style.display = 'none';
             allStudentsWeeklyScoresMainContainer.style.display = 'none';
             allStudentsMonthSelectionModal.style.display = 'none';
+            saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+            settingsContainer.style.display = 'none'; // Hide settings container
             
             // Show the summary table
             studentFeeSummaryTableContainer.style.display = 'block';
@@ -1627,6 +1902,134 @@
             feeSummaryTitle.textContent = `สรุปค่าห้องของนักเรียน ห้อง 3/1 (ต่อเดือน) - รวมทั้งหมด: ${grandTotalForAllStudents} บาท`;
         }
 
+        // --- NEW Save History Functions ---
+        async function logSaveAction(studentId, studentName, details, amountChange = null) {
+            try {
+                await saveHistoryCollection.add({
+                    studentId: studentId,
+                    studentName: studentName, // Add student name
+                    details: details,
+                    amountChange: amountChange, // Store amountChange
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
+                });
+                console.log("Save action logged successfully.");
+            } catch (error) {
+                console.error("Error logging save action:", error);
+            }
+        }
+
+        async function renderSaveHistory() {
+            // Hide other main tables
+            studentListTableContainer.style.display = 'none';
+            scoreTableContainer.style.display = 'none';
+            allStudentsWeeklyScoresMainContainer.style.display = 'none';
+            allStudentsMonthSelectionModal.style.display = 'none';
+            studentFeeSummaryTableContainer.style.display = 'none';
+            settingsContainer.style.display = 'none'; // Hide settings container
+            
+            // Show the save history table
+            saveHistoryTableContainer.style.display = 'block';
+            saveHistoryTableBody.innerHTML = ''; // Clear existing rows
+
+            try {
+                const snapshot = await saveHistoryCollection.orderBy('timestamp', 'desc').get();
+                if (snapshot.empty) {
+                    const row = saveHistoryTableBody.insertRow();
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 6; // Adjusted colspan for new columns
+                    cell.textContent = "ไม่มีประวัติการบันทึก";
+                    cell.style.textAlign = "center";
+                    cell.style.fontStyle = "italic";
+                    return;
+                }
+
+                let index = 1;
+                snapshot.forEach(doc => {
+                    const history = doc.data();
+                    const row = saveHistoryTableBody.insertRow();
+                    const timestamp = history.timestamp ? new Date(history.timestamp.toDate()).toLocaleString('th-TH') : 'N/A';
+                    let amountChangeDisplay = 'N/A';
+                    if (history.amountChange !== null) {
+                        amountChangeDisplay = `${history.amountChange >= 0 ? '+' : ''}${history.amountChange} บาท`;
+                    }
+
+                    row.innerHTML = `
+                        <td>${index++}</td>
+                        <td>${history.studentId || '-'}</td>
+                        <td>${history.studentName || '-'}</td>
+                        <td>${history.details || '-'}</td>
+                        <td>${amountChangeDisplay}</td>
+                        <td>${timestamp}</td>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error rendering save history:", error);
+                const row = saveHistoryTableBody.insertRow();
+                const cell = row.insertCell(0);
+                cell.colSpan = 6; // Adjusted colspan for new columns
+                cell.textContent = `เกิดข้อผิดพลาดในการโหลดประวัติ: ${error.message}`;
+                cell.style.color = "red";
+                cell.style.textAlign = "center";
+            }
+        }
+
+        // --- NEW: Clear History Function ---
+        async function clearSaveHistoryFromFirebase() {
+            const password = clearHistoryAdminPasswordInput.value;
+            if (password !== ADMIN_PASSWORD) {
+                clearHistoryPasswordErrorMessage.textContent = "รหัสผ่านแอดมินไม่ถูกต้อง";
+                return;
+            }
+            clearHistoryPasswordErrorMessage.textContent = ""; // Clear error message
+
+            try {
+                const snapshot = await saveHistoryCollection.get();
+                if (snapshot.empty) {
+                    alert("ไม่มีประวัติการบันทึกให้ล้าง");
+                    closeAdminClearHistoryModal();
+                    return;
+                }
+
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                
+                alert("ล้างประวัติเสร็จแล้ว"); // Changed alert message as requested
+                closeAdminClearHistoryModal();
+                // Instead of rendering history, switch back to the student list view
+                studentListTableContainer.style.display = 'block';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none';
+                allStudentsMonthSelectionModal.style.display = 'none';
+                studentFeeSummaryTableContainer.style.display = 'none';
+                saveHistoryTableContainer.style.display = 'none'; // Ensure history table is hidden
+                settingsContainer.style.display = 'none'; // Ensure settings container is hidden
+                showStudentListBtn.classList.add('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active');
+                ScoresHistoryBtn.classList.remove('active');
+                SettingBtn.classList.remove('active');
+                renderStudentList(); // Re-render student list
+            } catch (error) {
+                console.error("Error clearing save history:", error);
+                clearHistoryPasswordErrorMessage.textContent = `เกิดข้อผิดพลาดในการล้างประวัติ: ${error.message}`;
+            }
+        }
+
+        // --- NEW: Admin Clear History Modal Functions ---
+        function openAdminClearHistoryModal() {
+            adminClearHistoryModal.style.display = 'flex';
+            clearHistoryAdminPasswordInput.value = ''; // Clear password input
+            clearHistoryPasswordErrorMessage.textContent = ''; // Clear error message
+        }
+
+        function closeAdminClearHistoryModal() {
+            adminClearHistoryModal.style.display = 'none';
+        }
+
 
         // --- Event Listeners and Initial Load ---
 
@@ -1672,6 +2075,8 @@
             showStudentScoresBtn = document.getElementById('showStudentScoresBtn');
             showStudentScoresBtnAll = document.getElementById('showStudentScoresBtnAll'); // New button
             showStudentFeeSummaryBtn = document.getElementById('showStudentFeeSummaryBtn'); // New button
+            ScoresHistoryBtn = document.getElementById('ScoresHistoryBtn'); // New button
+            SettingBtn = document.getElementById('SettingBtn'); // New button for settings
 
             studentListTableContainer = document.getElementById('studentListTableContainer');
             scoreTableContainer = document.getElementById('scoreTableContainer');
@@ -1680,6 +2085,10 @@
             feeSummaryTableHeader = document.getElementById('feeSummaryTableHeader'); // Assign new header row
             feeSummaryTableFooter = document.getElementById('feeSummaryTableFooter'); // Assign new footer
             feeSummaryTitle = document.getElementById('feeSummaryTitle'); // Assign new title element
+            saveHistoryTableContainer = document.getElementById('saveHistoryTableContainer'); // Assign new container
+            saveHistoryTableBody = document.getElementById('saveHistoryTableBody'); // Assign new tbody
+            settingsContainer = document.getElementById('settingsContainer'); // Assign settings container
+            clearHistoryBtn = document.getElementById('clearHistoryBtn'); // Assign clear history button
 
 
             monthlySelectionModal = document.getElementById('monthlySelectionModal');
@@ -1715,6 +2124,14 @@
             saveAllStudentsWeeklyScoresBtn = document.getElementById('saveAllStudentsWeeklyScoresBtn');
             cancelAllStudentsWeeklyScoresBtn = document.getElementById('cancelAllStudentsWeeklyScoresBtn');
 
+            // Assign new admin clear history modal elements
+            adminClearHistoryModal = document.getElementById('adminClearHistoryModal');
+            closeAdminClearHistoryModalBtn = document.getElementById('closeAdminClearHistoryModalBtn');
+            clearHistoryAdminPasswordInput = document.getElementById('clearHistoryAdminPasswordInput');
+            clearHistoryPasswordErrorMessage = document.getElementById('clearHistoryPasswordErrorMessage');
+            confirmClearHistoryBtn = document.getElementById('confirmClearHistoryBtn');
+            cancelClearHistoryBtn = document.getElementById('cancelClearHistoryBtn');
+
 
             // Initial data population for student details if collection is empty
             // This is crucial to ensure studentsCollection has data before rendering.
@@ -1738,7 +2155,7 @@
             })();
 
 
-            await loadStudentsFromFirebase(); // Load student details from Firebase (into studentsData array)
+            await loadStudentsFromFirebase(); // Load student details from Firebase (into studentsData array and studentNameMap)
 
             renderStudentList(); // Render student list table
             renderStudentScores(); // Render scores table
@@ -1794,11 +2211,15 @@
                 showStudentListBtn.classList.remove('active');
                 showStudentScoresBtn.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 // Hide other main tables when opening this modal
                 studentListTableContainer.style.display = 'none';
                 scoreTableContainer.style.display = 'none';
                 allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
                 studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+                settingsContainer.style.display = 'none'; // Hide settings container
                 openAllStudentsMonthSelectionModal(); // Call the function to show month selection modal
             });
 
@@ -1810,6 +2231,8 @@
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList();
             });
             allStudentsMonthSelectionModal.addEventListener('click', (event) => {
@@ -1821,6 +2244,8 @@
                     showStudentScoresBtn.classList.remove('active');
                     showStudentScoresBtnAll.classList.remove('active');
                     showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                    ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                    SettingBtn.classList.remove('active'); // Deactivate new button
                     renderStudentList();
                 }
             });
@@ -1832,6 +2257,8 @@
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList();
             });
 
@@ -1845,6 +2272,8 @@
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList();
             });
 
@@ -1855,12 +2284,65 @@
                 showStudentListBtn.classList.remove('active');
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 studentListTableContainer.style.display = 'none';
                 scoreTableContainer.style.display = 'none';
                 allStudentsWeeklyScoresMainContainer.style.display = 'none';
                 allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
+                saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+                settingsContainer.style.display = 'none'; // Hide settings container
                 await renderStudentFeeSummary(); // Call the new function to render the summary
             });
+
+            // --- New: Event Listener for Save History Button ---
+            ScoresHistoryBtn.addEventListener('click', async () => {
+                ScoresHistoryBtn.classList.add('active');
+                showStudentListBtn.classList.remove('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
+                studentListTableContainer.style.display = 'none';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none';
+                allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
+                studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                settingsContainer.style.display = 'none'; // Hide settings container
+                await renderSaveHistory(); // Call the new function to render the save history
+            });
+
+            // --- New: Event Listener for Settings Button ---
+            SettingBtn.addEventListener('click', () => {
+                SettingBtn.classList.add('active');
+                showStudentListBtn.classList.remove('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active');
+                ScoresHistoryBtn.classList.remove('active');
+
+                // Hide all other main containers
+                studentListTableContainer.style.display = 'none';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none';
+                allStudentsMonthSelectionModal.style.display = 'none';
+                studentFeeSummaryTableContainer.style.display = 'none';
+                saveHistoryTableContainer.style.display = 'none';
+
+                // Show settings container
+                settingsContainer.style.display = 'flex';
+            });
+
+            // --- New: Event Listeners for Clear History Button and Modal ---
+            clearHistoryBtn.addEventListener('click', openAdminClearHistoryModal);
+            closeAdminClearHistoryModalBtn.addEventListener('click', closeAdminClearHistoryModal);
+            adminClearHistoryModal.addEventListener('click', (event) => {
+                if (event.target === adminClearHistoryModal) {
+                    closeAdminClearHistoryModal();
+                }
+            });
+            confirmClearHistoryBtn.addEventListener('click', clearSaveHistoryFromFirebase);
+            cancelClearHistoryBtn.addEventListener('click', closeAdminClearHistoryModal);
 
 
             // Toggle between student list and student scores tables
@@ -1870,10 +2352,14 @@
                 allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
                 allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
                 studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+                settingsContainer.style.display = 'none'; // Hide settings container
                 showStudentListBtn.classList.add('active');
                 showStudentScoresBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList(); // Re-render to ensure fresh data/event listeners
             });
 
@@ -1883,10 +2369,14 @@
                 allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
                 allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
                 studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                saveHistoryTableContainer.style.display = 'none'; // Hide save history table
+                settingsContainer.style.display = 'none'; // Hide settings container
                 showStudentScoresBtn.classList.add('active');
                 showStudentListBtn.classList.remove('active');
                 showStudentScoresBtnAll.classList.remove('active');
                 showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                ScoresHistoryBtn.classList.remove('active'); // Deactivate new button
+                SettingBtn.classList.remove('active'); // Deactivate new button
                 await renderStudentScores(); // Render scores table when clicked
             });
         });
