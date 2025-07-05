@@ -534,6 +534,16 @@
         .month-button:active {
             transform: translateY(0);
         }
+
+        /* Style for table footer (for total row) */
+        tfoot {
+            font-weight: bold;
+            background-color: #e0e0e0; /* Light grey background for footer */
+        }
+        tfoot td {
+            padding: 12px 15px;
+            border-top: 2px solid #ccc; /* Stronger border above total */
+        }
     </style>
 </head>
 <body>
@@ -554,6 +564,8 @@
     <div class="toggle-buttons">
         <button id="showStudentListBtn" class="toggle-btn active">รายชื่อของนักเรียน</button>
         <button id="showStudentScoresBtn" class="toggle-btn">ค่าห้องของนักเรียน</button>
+        <button id="showStudentScoresBtnAll" class="toggle-btn">ค่าห้องของนักเรียนทั้งหมด</button>
+        <button id="showStudentFeeSummaryBtn" class="toggle-btn">สรุปค่าห้องของนักเรียน</button>
     </div>
 
     <div id="studentListTableContainer" class="table-container">
@@ -582,11 +594,32 @@
                     <th>เลขที่</th>
                     <th>รหัสนักเรียน</th>
                     <th>ชื่อ - นามสกุล</th>
-                    <th>ดูค่าห้องรายเดือน</th> <!-- Changed column header -->
+                    <th>ดูค่าห้องรายเดือน</th>
                 </tr>
             </thead>
             <tbody id="scoreTableBody">
                 </tbody>
+        </table>
+    </div>
+
+    <!-- New: Student Fee Summary Table Container -->
+    <div id="studentFeeSummaryTableContainer" class="table-container" style="display:none;">
+        <h2>สรุปค่าห้องของนักเรียน ห้อง 3/1 (ต่อเดือน)</h2>
+        <table>
+            <thead>
+                <tr id="feeSummaryTableHeader">
+                    <th>เลขที่</th>
+                    <th>รหัสนักเรียน</th>
+                    <th>ชื่อ - นามสกุล</th>
+                    <!-- Monthly headers will be added by JS -->
+                </tr>
+            </thead>
+            <tbody id="studentFeeSummaryTableBody">
+                <!-- Summary rows will be added by JS -->
+            </tbody>
+            <tfoot id="feeSummaryTableFooter">
+                <!-- Total row will be added by JS -->
+            </tfoot>
         </table>
     </div>
 
@@ -663,22 +696,19 @@
         </div>
     </div>
 
-    <!-- NEW Modal for Monthly Selection -->
     <div id="monthlySelectionModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-button" id="closeMonthlySelectionModalBtn">&times;</span>
             <h3 id="monthlySelectionModalStudentName"></h3>
             <h4>เลือกเดือนเพื่อดูค่าห้องรายสัปดาห์</h4>
             <div id="monthButtonsGrid" class="score-input-grid">
-                <!-- Month buttons will be dynamically added here -->
-            </div>
+                </div>
             <div class="score-modal-actions">
                 <button class="cancel-btn" id="cancelMonthlySelectionBtn">ยกเลิก</button>
             </div>
         </div>
     </div>
 
-    <!-- Existing Weekly Scores Modal (will be opened from monthlySelectionModal) -->
     <div id="weeklyScoresModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-button" id="closeWeeklyScoresModalBtn">&times;</span>
@@ -686,10 +716,9 @@
             <h4>ค่าห้องประจำสัปดาห์ของ <span id="weeklyModalMonthName"></span></h4>
 
             <div id="weeklyScoresGrid" class="score-input-grid" style="margin-top: 20px;">
-                <!-- Weekly score inputs will be dynamically added here by JavaScript -->
-            </div>
+                </div>
 
-            <div class="password-verification" style="margin-top: 20px;">
+            <div class="password-verification" id="weeklyAdminPasswordSection">
                 <label for="weeklyAdminPasswordInput" style="font-weight: bold; color: #333;">รหัสผ่านแอดมิน:</label>
                 <input type="password" id="weeklyAdminPasswordInput" placeholder="กรอกรหัสผ่านเพื่อบันทึก">
                 <p id="weeklyPasswordErrorMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
@@ -699,6 +728,59 @@
                 <button class="save-btn" id="saveWeeklyScoresBtn">บันทึกค่าห้องรายสัปดาห์</button>
                 <button class="cancel-btn" id="cancelWeeklyScoresBtn">ยกเลิก</button>
             </div>
+        </div>
+    </div>
+
+    <div id="allStudentsMonthSelectionModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="closeAllStudentsMonthSelectionModalBtn">&times;</span>
+            <h3 id="allStudentsMonthSelectionModalTitle">เลือกเดือนเพื่อดูค่าห้องของนักเรียนทั้งหมด</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>เดือน</th>
+                            <th>การจัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allStudentsMonthTableBody">
+                        </tbody>
+                </table>
+            </div>
+            <div class="score-modal-actions">
+                <button class="cancel-btn" id="cancelAllStudentsMonthSelectionBtn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="allStudentsWeeklyScoresMainContainer" class="table-container" style="display:none;">
+        <h4>ค่าห้องประจำสัปดาห์ของนักเรียนทุกคนสำหรับ <span id="allStudentsWeeklyModalMonthName"></span></h4>
+        <div style="overflow-x: auto;">
+            <table id="allStudentsWeeklyScoresTable">
+                <thead>
+                    <tr>
+                        <th>เลขที่</th>
+                        <th>รหัสนักเรียน</th>
+                        <th>ชื่อ - นามสกุล</th>
+                        <th>สัปดาห์ที่ 1</th>
+                        <th>สัปดาห์ที่ 2</th>
+                        <th>สัปดาห์ที่ 3</th>
+                        <th>สัปดาห์ที่ 4</th>
+                        <th>สัปดาห์ที่ 5</th>
+                    </tr>
+                </thead>
+                <tbody id="allStudentsWeeklyScoresTableBody">
+                    </tbody>
+            </table>
+        </div>
+        <div class="password-verification" id="allStudentsWeeklyAdminPasswordSectionAll">
+            <label for="allStudentsWeeklyAdminPasswordInput" style="font-weight: bold; color: #333;">รหัสผ่านแอดมิน:</label>
+            <input type="password" id="allStudentsWeeklyAdminPasswordInputAll" placeholder="กรอกรหัสผ่านเพื่อบันทึก">
+            <p id="allStudentsWeeklyPasswordErrorMessageAll" style="color: red; text-align: center; margin-top: 10px;"></p>
+        </div>
+        <div class="score-modal-actions">
+            <button class="save-btn" id="saveAllStudentsWeeklyScoresBtn">บันทึกค่าห้องทั้งหมด</button>
+            <button class="cancel-btn" id="cancelAllStudentsWeeklyScoresBtn">ยกเลิก</button>
         </div>
     </div>
 
@@ -716,38 +798,40 @@
         }
 
         // ข้อมูลนักเรียนสำหรับห้อง 3/1 (เริ่มต้น - จะถูกแทนที่ด้วยข้อมูลจาก Firebase)
-        const studentsData = [
-            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560", studentNumber: 1 },
-            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789", studentNumber: 2 },
-            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890", studentNumber: 3 },
-            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 4 },
-            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 5 },
-            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 6 },
-            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 7 },
-            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 8 },
-            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 9 },
-            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 10 },
-            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 11 },
-            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 12 },
-            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 13 },
-            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 14 },
-            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 15 },
-            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 16 },
-            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 17 },
-            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 18 },
-            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 19 },
-            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 20 },
-            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 21 },
-            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 22 },
-            { id: "ST023", prefix: "นางสาว", name: "นักเรียน 23", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 23 },
-            { id: "ST024", prefix: "นางสาว", name: "นักเรียน 24", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 24 },
-            { id: "ST025", prefix: "นางสาว", name: "นักเรียน 25", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 25 },
-            { id: "ST026", prefix: "นางสาว", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 26 },
-            { id: "ST027", prefix: "นางสาว", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 27 },
-            { id: "ST028", prefix: "นางสาว", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 28 },
+        const initialStudents = [
+            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
+            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
+            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890" },
+            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST023", prefix: "นางสาว", name: "นักเรียน 23", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST024", prefix: "นางสาว", name: "นักเรียน 24", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST025", prefix: "นางสาว", name: "นักเรียน 25", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST026", prefix: "นางสาว", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST027", prefix: "นางสาว", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
+            { id: "ST028", prefix: "นางสาว", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
             { id: "ST029", prefix: "นางสาว", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-            { id: "ST030", prefix: "นางสาว", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 30 },
-        ].map(s => ({ ...s, studentNumber: s.studentNumber || getStudentNumberFromId(s.id) })); // Initialize studentNumber from data or derive
+            { id: "ST030", prefix: "นางสาว", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" }
+        ];
+
+        const studentsData = initialStudents.map(s => ({ ...s, studentNumber: s.studentNumber !== undefined ? s.studentNumber : (initialStudents.indexOf(s) + 1) })); // Initialize studentNumber from data or derive
 
         // ข้อมูลคะแนนนักเรียนสำหรับห้อง 3/1 (จะถูก Overwrite ด้วยข้อมูลจาก Firebase)
         const studentScores = {}; // This will now store monthly totals (if needed) or can be removed
@@ -780,6 +864,7 @@
         const ADMIN_PASSWORD = "301";
 
         let currentStudentId = null; // Store the ID of the student whose details or scores are currently open
+        let currentAllStudentsWeeklyScoresMonth = null; // Store the currently selected month for all students' scores
 
         // DOM Elements (Declared here, will be assigned inside DOMContentLoaded)
         let studentListTableBody;
@@ -819,8 +904,14 @@
 
         let showStudentListBtn;
         let showStudentScoresBtn;
+        let showStudentScoresBtnAll; // New button for all student scores
+        let showStudentFeeSummaryBtn; // New button for fee summary
         let studentListTableContainer;
         let scoreTableContainer;
+        let studentFeeSummaryTableContainer; // New container for fee summary
+        let studentFeeSummaryTableBody; // New tbody for fee summary
+        let feeSummaryTableHeader; // New header for fee summary
+        let feeSummaryTableFooter; // New footer for fee summary
 
         let monthlySelectionModal;
         let closeMonthlySelectionModalBtn;
@@ -837,6 +928,25 @@
         let weeklyPasswordErrorMessage;
         let saveWeeklyScoresBtn;
         let cancelWeeklyScoresBtn;
+        let weeklyAdminPasswordSection; // New: Reference to the password section div for weekly scores modal
+
+        let allStudentsMonthSelectionModal; // New modal for all students' month selection
+        let closeAllStudentsMonthSelectionModalBtn;
+        let allStudentsMonthSelectionModalTitle;
+        let allStudentsMonthTableBody;
+        let cancelAllStudentsMonthSelectionBtn;
+
+        let allStudentsWeeklyScoresMainContainer; // New main table container for all students' weekly scores
+        let allStudentsWeeklyModalMonthName;
+        let allStudentsWeeklyScoresTableBody;
+        let allStudentsWeeklyAdminPasswordSectionAll;
+        let allStudentsWeeklyAdminPasswordInputAll;
+        let allStudentsWeeklyPasswordErrorMessageAll;
+        let saveAllStudentsWeeklyScoresBtn;
+        let cancelAllStudentsWeeklyScoresBtn;
+
+
+        let currentWeeklyScores; // Declare at a scope accessible by loadWeeklyScoresFromFirebase and renderWeeklyScores
 
 
         async function loadStudentsFromFirebase() {
@@ -1109,7 +1219,7 @@
         // async function saveMonthlyScores() { ... }
         // These functions are removed as per the new requirement to manage scores weekly.
 
-        // --- NEW Monthly Selection Modal Functions ---
+        // --- NEW Monthly Selection Modal Functions (for individual student scores) ---
 
         async function openMonthlySelectionModal(studentId) {
             currentStudentId = studentId; // Set the current student ID for monthly selection
@@ -1147,7 +1257,7 @@
         }
 
 
-        // --- Weekly Scores Modal Functions ---
+        // --- Weekly Scores Modal Functions (for individual student scores) ---
 
         let currentWeeklyStudentId = null;
         let currentWeeklyMonth = null;
@@ -1170,6 +1280,7 @@
             // Reset password and error
             weeklyAdminPasswordInput.value = '';
             weeklyPasswordErrorMessage.textContent = '';
+            weeklyAdminPasswordSection.style.display = 'flex'; // Show password section for weekly scores
 
             weeklyScoresModal.style.display = 'flex'; // Show the modal
         }
@@ -1198,10 +1309,10 @@
             try {
                 const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(month);
                 const doc = await docRef.get();
-                currentWeeklyScores = doc.exists ? doc.data() : {};
+                currentWeeklyScores = doc.exists ? doc.data() : {}; // Ensure currentWeeklyScores is an object
             } catch (error) {
                 console.error("Error loading weekly scores:", error);
-                currentWeeklyScores = {};
+                currentWeeklyScores = {}; // Fallback to empty object on error
             }
         }
 
@@ -1235,13 +1346,254 @@
                                             .set(scoresToSave, { merge: true });
                 alert('บันทึกค่าห้องรายสัปดาห์สำเร็จ!');
                 weeklyScoresModal.style.display = 'none'; // Hide modal
-                // Optionally, re-render the main monthly scores table if you want to show monthly totals derived from weekly scores
-                // For now, we are not showing monthly totals in the main table, so no re-render needed here.
+                weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
             } catch (error) {
                 console.error("Error saving weekly scores:", error);
                 alert('เกิดข้อผิดพลาดในการบันทึกค่าห้องรายสัปดาห์: ' + error.message);
             }
         }
+
+
+        // --- NEW All Students Scores Functions (now in a modal) ---
+
+        async function openAllStudentsMonthSelectionModal() {
+            // Hide other main tables
+            studentListTableContainer.style.display = 'none';
+            scoreTableContainer.style.display = 'none';
+            allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
+            studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+
+            // Show the all students month selection modal
+            allStudentsMonthSelectionModal.style.display = 'flex';
+            allStudentsMonthSelectionModalTitle.textContent = 'เลือกเดือนเพื่อดูค่าห้องของนักเรียนทั้งหมด';
+            
+            allStudentsMonthTableBody.innerHTML = ''; // Clear existing month rows
+            months.forEach(month => {
+                const row = allStudentsMonthTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${month}</td>
+                    <td><button class="details-btn" data-month="${month}">ดูค่าห้องรายสัปดาห์</button></td>
+                `;
+            });
+
+            // Attach event listeners to "ดูค่าห้องรายสัปดาห์" buttons in the month table
+            document.querySelectorAll('#allStudentsMonthTableBody .details-btn').forEach(button => {
+                button.onclick = (event) => {
+                    closeAllStudentsMonthSelectionModal(); // Close month selection modal
+                    displayAllStudentsWeeklyScoresInMain(event.target.dataset.month); // Show weekly scores in main table
+                };
+            });
+
+            // Clear password and error messages
+            allStudentsWeeklyAdminPasswordInputAll.value = '';
+            allStudentsWeeklyPasswordErrorMessageAll.textContent = '';
+            allStudentsWeeklyAdminPasswordSectionAll.style.display = 'none'; // Hide password section
+        }
+
+        // Function to close the all students month selection modal
+        function closeAllStudentsMonthSelectionModal() {
+            allStudentsMonthSelectionModal.style.display = 'none';
+        }
+
+        // Function to display all students' weekly scores in the main table area
+        async function displayAllStudentsWeeklyScoresInMain(month) {
+            currentAllStudentsWeeklyScoresMonth = month;
+            allStudentsWeeklyModalMonthName.textContent = month;
+
+            // Hide other main tables and show the all students weekly scores container
+            studentListTableContainer.style.display = 'none';
+            scoreTableContainer.style.display = 'none';
+            studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+            allStudentsWeeklyScoresMainContainer.style.display = 'block';
+
+            allStudentsWeeklyScoresTableBody.innerHTML = ''; // Clear existing rows
+
+            // Fetch all student details
+            const studentsSnapshot = await studentsCollection.orderBy('studentNumber').get();
+            const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            for (const student of allStudents) {
+                const row = allStudentsWeeklyScoresTableBody.insertRow();
+                row.dataset.studentId = student.id; // Store student ID on the row
+
+                const studentNumberCell = document.createElement('td');
+                studentNumberCell.textContent = student.studentNumber || '-';
+
+                const studentIdCell = document.createElement('td');
+                studentIdCell.textContent = student.id;
+
+                const studentNameCell = document.createElement('td');
+                studentNameCell.textContent = `${student.prefix} ${student.name}`;
+
+                row.appendChild(studentNumberCell);
+                row.appendChild(studentIdCell);
+                row.appendChild(studentNameCell);
+
+                // Fetch weekly scores for this student and month
+                const docRef = weeklyScoresCollection.doc(student.id).collection('months').doc(month);
+                const doc = await docRef.get();
+                const studentWeeklyScores = doc.exists ? doc.data() : {};
+
+                for (let i = 1; i <= numWeeksInMonth; i++) {
+                    const weekKey = `week${i}`;
+                    const score = studentWeeklyScores[weekKey] !== undefined ? studentWeeklyScores[weekKey] : 0;
+
+                    const scoreCell = document.createElement('td');
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '100';
+                    input.value = score;
+                    input.dataset.week = weekKey; // Store week key on the input
+                    scoreCell.appendChild(input);
+                    row.appendChild(scoreCell);
+                }
+            }
+
+            // Show password section when table is displayed
+            allStudentsWeeklyAdminPasswordSectionAll.style.display = 'flex';
+        }
+
+        async function saveAllStudentsWeeklyScores() {
+            const password = allStudentsWeeklyAdminPasswordInputAll.value;
+            if (password !== ADMIN_PASSWORD) {
+                allStudentsWeeklyPasswordErrorMessageAll.textContent = "รหัสผ่านแอดมินไม่ถูกต้อง";
+                return;
+            }
+            allStudentsWeeklyPasswordErrorMessageAll.textContent = ""; // Clear error message
+
+            if (!currentAllStudentsWeeklyScoresMonth) {
+                console.error("No month selected for saving all students' weekly scores.");
+                return;
+            }
+
+            const batch = db.batch();
+            const rows = allStudentsWeeklyScoresTableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const studentId = row.dataset.studentId;
+                const scoresToSave = {};
+                const inputs = row.querySelectorAll('input[type="number"]');
+                inputs.forEach(input => {
+                    scoresToSave[input.dataset.week] = parseInt(input.value) || 0;
+                });
+
+                const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(currentAllStudentsWeeklyScoresMonth);
+                batch.set(docRef, scoresToSave, { merge: true });
+            });
+
+            try {
+                await batch.commit();
+                alert('บันทึกค่าห้องของนักเรียนทั้งหมดสำเร็จ!');
+                // After saving, go back to the default student list view
+                studentListTableContainer.style.display = 'block';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Hide this container
+                studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                showStudentListBtn.classList.add('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                renderStudentList(); // Re-render to ensure fresh data/event listeners
+            }
+            catch (error) {
+                console.error("Error saving all students' weekly scores:", error);
+                alert('เกิดข้อผิดพลาดในการบันทึกค่าห้องของนักเรียนทั้งหมด: ' + error.message);
+            }
+        }
+
+        // --- NEW Student Fee Summary Functions ---
+        async function renderStudentFeeSummary() {
+            // Hide other main tables
+            studentListTableContainer.style.display = 'none';
+            scoreTableContainer.style.display = 'none';
+            allStudentsWeeklyScoresMainContainer.style.display = 'none';
+            allStudentsMonthSelectionModal.style.display = 'none';
+            
+            // Show the summary table
+            studentFeeSummaryTableContainer.style.display = 'block';
+
+            // Clear existing table content
+            studentFeeSummaryTableBody.innerHTML = '';
+            // Re-render table header for months
+            feeSummaryTableHeader.innerHTML = `
+                <th>เลขที่</th>
+                <th>รหัสนักเรียน</th>
+                <th>ชื่อ - นามสกุล</th>
+            `;
+            months.forEach(month => {
+                const th = document.createElement('th');
+                th.textContent = month;
+                feeSummaryTableHeader.appendChild(th);
+            });
+            const totalTh = document.createElement('th');
+            totalTh.textContent = 'รวมทั้งหมด';
+            feeSummaryTableHeader.appendChild(totalTh);
+
+
+            // Fetch all student details
+            const studentsSnapshot = await studentsCollection.orderBy('studentNumber').get();
+            const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            let grandTotalForAllStudents = 0; // Initialize grand total
+
+            for (const student of allStudents) {
+                const row = studentFeeSummaryTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${student.studentNumber || '-'}</td>
+                    <td>${student.id}</td>
+                    <td>${student.prefix} ${student.name}</td>
+                `;
+                let overallTotalForStudent = 0; // Total for current student across all months
+
+                for (const month of months) {
+                    const docRef = weeklyScoresCollection.doc(student.id).collection('months').doc(month);
+                    const doc = await docRef.get();
+                    const studentWeeklyScores = doc.exists ? doc.data() : {};
+                    
+                    let monthlyTotal = 0;
+                    for (let i = 1; i <= numWeeksInMonth; i++) {
+                        const weekKey = `week${i}`;
+                        monthlyTotal += (studentWeeklyScores[weekKey] !== undefined ? studentWeeklyScores[weekKey] : 0);
+                    }
+                    overallTotalForStudent += monthlyTotal; // Add to student's total
+
+                    const monthCell = document.createElement('td');
+                    monthCell.textContent = monthlyTotal;
+                    row.appendChild(monthCell);
+                }
+                const overallTotalCell = document.createElement('td');
+                overallTotalCell.textContent = overallTotalForStudent;
+                overallTotalCell.style.fontWeight = 'bold'; // Make student's total stand out
+                row.appendChild(overallTotalCell);
+
+                grandTotalForAllStudents += overallTotalForStudent; // Add student's total to grand total
+            }
+
+            // Add a footer row for the grand total
+            feeSummaryTableFooter.innerHTML = ''; // Clear any existing footer content
+            const totalRow = feeSummaryTableFooter.insertRow();
+            const emptyCell1 = document.createElement('td');
+            emptyCell1.colSpan = 2; // Span across "เลขที่" and "รหัสนักเรียน"
+            totalRow.appendChild(emptyCell1);
+
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.textContent = 'รวมทั้งหมดของทุกคน';
+            totalRow.appendChild(totalLabelCell);
+
+            // Add empty cells for each month column to align the grand total correctly
+            for (let i = 0; i < months.length; i++) {
+                const emptyMonthCell = document.createElement('td');
+                totalRow.appendChild(emptyMonthCell);
+            }
+
+            const grandTotalCell = document.createElement('td');
+            grandTotalCell.textContent = grandTotalForAllStudents;
+            grandTotalCell.style.fontWeight = 'bold';
+            grandTotalCell.style.fontSize = '1.2em'; // Make it larger
+            totalRow.appendChild(grandTotalCell);
+        }
+
 
         // --- Event Listeners and Initial Load ---
 
@@ -1285,8 +1637,16 @@
 
             showStudentListBtn = document.getElementById('showStudentListBtn');
             showStudentScoresBtn = document.getElementById('showStudentScoresBtn');
+            showStudentScoresBtnAll = document.getElementById('showStudentScoresBtnAll'); // New button
+            showStudentFeeSummaryBtn = document.getElementById('showStudentFeeSummaryBtn'); // New button
+
             studentListTableContainer = document.getElementById('studentListTableContainer');
             scoreTableContainer = document.getElementById('scoreTableContainer');
+            studentFeeSummaryTableContainer = document.getElementById('studentFeeSummaryTableContainer'); // Assign new container
+            studentFeeSummaryTableBody = document.getElementById('studentFeeSummaryTableBody'); // Assign new tbody
+            feeSummaryTableHeader = document.getElementById('feeSummaryTableHeader'); // Assign new header row
+            feeSummaryTableFooter = document.getElementById('feeSummaryTableFooter'); // Assign new footer
+
 
             monthlySelectionModal = document.getElementById('monthlySelectionModal');
             closeMonthlySelectionModalBtn = document.getElementById('closeMonthlySelectionModalBtn');
@@ -1303,6 +1663,23 @@
             weeklyPasswordErrorMessage = document.getElementById('weeklyPasswordErrorMessage');
             saveWeeklyScoresBtn = document.getElementById('saveWeeklyScoresBtn');
             cancelWeeklyScoresBtn = document.getElementById('cancelWeeklyScoresBtn');
+            weeklyAdminPasswordSection = document.getElementById('weeklyAdminPasswordSection'); // Assign weekly password section
+
+            // New elements for all students scores modal
+            allStudentsMonthSelectionModal = document.getElementById('allStudentsMonthSelectionModal');
+            closeAllStudentsMonthSelectionModalBtn = document.getElementById('closeAllStudentsMonthSelectionModalBtn');
+            allStudentsMonthSelectionModalTitle = document.getElementById('allStudentsMonthSelectionModalTitle');
+            allStudentsMonthTableBody = document.getElementById('allStudentsMonthTableBody'); // Assign new tbody
+            cancelAllStudentsMonthSelectionBtn = document.getElementById('cancelAllStudentsMonthSelectionBtn');
+            
+            allStudentsWeeklyScoresMainContainer = document.getElementById('allStudentsWeeklyScoresMainContainer');
+            allStudentsWeeklyModalMonthName = document.getElementById('allStudentsWeeklyModalMonthName');
+            allStudentsWeeklyScoresTableBody = document.getElementById('allStudentsWeeklyScoresTableBody');
+            allStudentsWeeklyAdminPasswordSectionAll = document.getElementById('allStudentsWeeklyAdminPasswordSectionAll');
+            allStudentsWeeklyAdminPasswordInputAll = document.getElementById('allStudentsWeeklyAdminPasswordInputAll');
+            allStudentsWeeklyPasswordErrorMessageAll = document.getElementById('allStudentsWeeklyPasswordErrorMessageAll');
+            saveAllStudentsWeeklyScoresBtn = document.getElementById('saveAllStudentsWeeklyScoresBtn');
+            cancelAllStudentsWeeklyScoresBtn = document.getElementById('cancelAllStudentsWeeklyScoresBtn');
 
 
             // Initial data population for student details if collection is empty
@@ -1312,39 +1689,7 @@
                     const snapshot = await studentsCollection.limit(1).get();
                     if (snapshot.empty) {
                         console.log("students3_1 collection is empty. Populating with initial data.");
-                        const initialStudents = [
-                            { id: "15446", prefix: "นาย", name: "กฤติพงศ์ นามบุตร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "หัวหน้าห้อง", dob: "06 สิงหาคม 2553", phone: "063-071-0560" },
-                            { id: "15447", prefix: "นาย", name: "ธนาศักดิ์ คนหมั้น", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "26 มกราคม 2554", phone: "082-345-6789" },
-                            { id: "15449", prefix: "นาย", name: "ปิยวัฒน์ คนเพียร", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "16 มิถุนายน 2553", phone: "083-456-7890" },
-                            { id: "ST004", prefix: "นาย", name: "นักเรียน 4", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST005", prefix: "นาย", name: "นักเรียน 5", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST006", prefix: "นาย", name: "นักเรียน 6", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST007", prefix: "นาย", name: "นักเรียน 7", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST008", prefix: "นาย", name: "นักเรียน 8", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST009", prefix: "นาย", name: "นักเรียน 9", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST010", prefix: "นาย", name: "นักเรียน 10", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST011", prefix: "นาย", name: "นักเรียน 11", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST012", prefix: "นาย", name: "นักเรียน 12", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST013", prefix: "นาย", name: "นักเรียน 13", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST014", prefix: "นาย", name: "นักเรียน 14", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST015", prefix: "นาย", name: "นักเรียน 15", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST016", prefix: "นาย", name: "นักเรียน 16", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST017", prefix: "นาย", name: "นักเรียน 17", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST018", prefix: "นาย", name: "นักเรียน 18", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST019", prefix: "นาย", name: "นักเรียน 19", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST020", prefix: "นาย", name: "นักเรียน 20", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST021", prefix: "นาย", name: "นักเรียน 21", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST022", prefix: "นาย", name: "นักเรียน 22", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST023", prefix: "นางสาว", name: "นักเรียน 23", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST024", prefix: "นางสาว", name: "นักเรียน 24", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST025", prefix: "นางสาว", name: "นักเรียน 25", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST026", prefix: "นางสาว", name: "นักเรียน 26", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST027", prefix: "นางสาว", name: "นักเรียน 27", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST028", prefix: "นางสาว", name: "นักเรียน 28", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST029", prefix: "นางสาว", name: "นักเรียน 29", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-" },
-                            { id: "ST030", prefix: "นางสาว", name: "นักเรียน 30", grade: "มัธยมศึกษาปีที่ 3", class: "3/1", status: "นักเรียน", dob: "-", phone: "-", studentNumber: 30 },
-                        ].map(s => ({ ...s, studentNumber: s.studentNumber || getStudentNumberFromId(s.id) })); // Initialize studentNumber from data or derive
-
+                        // Use the globally defined initialStudents array
                         for (const student of initialStudents) {
                             const studentDataToSave = { ...student, studentNumber: student.studentNumber !== undefined ? student.studentNumber : (initialStudents.indexOf(student) + 1) };
                             await studentsCollection.doc(student.id).set(studentDataToSave);
@@ -1381,7 +1726,7 @@
                 passwordErrorMessage.textContent = ''; // Clear error message
             });
 
-            // Monthly Selection Modal Event Listeners
+            // Monthly Selection Modal Event Listeners (for individual student scores)
             closeMonthlySelectionModalBtn.addEventListener('click', closeMonthlySelectionModal);
             monthlySelectionModal.addEventListener('click', (event) => {
                 if (event.target === monthlySelectionModal) {
@@ -1391,31 +1736,123 @@
             cancelMonthlySelectionBtn.addEventListener('click', closeMonthlySelectionModal);
 
 
-            // Weekly Scores Modal Event Listeners
-            closeWeeklyScoresModalBtn.addEventListener('click', () => weeklyScoresModal.style.display = 'none');
+            // Weekly Scores Modal Event Listeners (for individual student scores)
+            closeWeeklyScoresModalBtn.addEventListener('click', () => {
+                weeklyScoresModal.style.display = 'none';
+                weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
+            });
             weeklyScoresModal.addEventListener('click', (event) => {
                 if (event.target === weeklyScoresModal) {
                     weeklyScoresModal.style.display = 'none';
+                    weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
                 }
             });
             saveWeeklyScoresBtn.addEventListener('click', saveWeeklyScores);
-            cancelWeeklyScoresBtn.addEventListener('click', () => weeklyScoresModal.style.display = 'none');
+            cancelWeeklyScoresBtn.addEventListener('click', () => {
+                weeklyScoresModal.style.display = 'none';
+                weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
+            });
+
+
+            // --- All Students Scores Month Selection Modal Event Listeners ---
+            showStudentScoresBtnAll.addEventListener('click', () => {
+                showStudentScoresBtnAll.classList.add('active');
+                showStudentListBtn.classList.remove('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                // Hide other main tables when opening this modal
+                studentListTableContainer.style.display = 'none';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
+                studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
+                openAllStudentsMonthSelectionModal(); // Call the function to show month selection modal
+            });
+
+            closeAllStudentsMonthSelectionModalBtn.addEventListener('click', () => {
+                closeAllStudentsMonthSelectionModal();
+                // When closing this modal, revert to the default student list view
+                studentListTableContainer.style.display = 'block';
+                showStudentListBtn.classList.add('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                renderStudentList();
+            });
+            allStudentsMonthSelectionModal.addEventListener('click', (event) => {
+                if (event.target === allStudentsMonthSelectionModal) {
+                    closeAllStudentsMonthSelectionModal();
+                    // When clicking outside the modal, revert to default view
+                    studentListTableContainer.style.display = 'block';
+                    showStudentListBtn.classList.add('active');
+                    showStudentScoresBtn.classList.remove('active');
+                    showStudentScoresBtnAll.classList.remove('active');
+                    showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                    renderStudentList();
+                }
+            });
+            cancelAllStudentsMonthSelectionBtn.addEventListener('click', () => {
+                closeAllStudentsMonthSelectionModal();
+                // When cancelling from month selection, revert to default view
+                studentListTableContainer.style.display = 'block';
+                showStudentListBtn.classList.add('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                renderStudentList();
+            });
+
+            // Event listeners for the main all students weekly scores table
+            saveAllStudentsWeeklyScoresBtn.addEventListener('click', saveAllStudentsWeeklyScores);
+            cancelAllStudentsWeeklyScoresBtn.addEventListener('click', () => {
+                // When cancelling from the main weekly scores table, revert to default view
+                allStudentsWeeklyScoresMainContainer.style.display = 'none';
+                studentListTableContainer.style.display = 'block';
+                showStudentListBtn.classList.add('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
+                renderStudentList();
+            });
+
+
+            // --- New: Event Listener for Student Fee Summary Button ---
+            showStudentFeeSummaryBtn.addEventListener('click', async () => {
+                showStudentFeeSummaryBtn.classList.add('active');
+                showStudentListBtn.classList.remove('active');
+                showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                studentListTableContainer.style.display = 'none';
+                scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none';
+                allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
+                await renderStudentFeeSummary(); // Call the new function to render the summary
+            });
 
 
             // Toggle between student list and student scores tables
             showStudentListBtn.addEventListener('click', () => {
                 studentListTableContainer.style.display = 'block';
                 scoreTableContainer.style.display = 'none';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
+                allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
+                studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
                 showStudentListBtn.classList.add('active');
                 showStudentScoresBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
                 renderStudentList(); // Re-render to ensure fresh data/event listeners
             });
 
             showStudentScoresBtn.addEventListener('click', async () => {
                 studentListTableContainer.style.display = 'none';
                 scoreTableContainer.style.display = 'block';
+                allStudentsWeeklyScoresMainContainer.style.display = 'none'; // Ensure main weekly table is hidden
+                allStudentsMonthSelectionModal.style.display = 'none'; // Ensure month selection modal is hidden
+                studentFeeSummaryTableContainer.style.display = 'none'; // Hide fee summary table
                 showStudentScoresBtn.classList.add('active');
                 showStudentListBtn.classList.remove('active');
+                showStudentScoresBtnAll.classList.remove('active');
+                showStudentFeeSummaryBtn.classList.remove('active'); // Deactivate new button
                 await renderStudentScores(); // Render scores table when clicked
             });
         });
