@@ -604,7 +604,7 @@
 
     <!-- New: Student Fee Summary Table Container -->
     <div id="studentFeeSummaryTableContainer" class="table-container" style="display:none;">
-        <h2>สรุปค่าห้องของนักเรียน ห้อง 3/1 (ต่อเดือน)</h2>
+        <h2 id="feeSummaryTitle">สรุปค่าห้องของนักเรียน ห้อง 3/1 (ต่อเดือน)</h2>
         <table>
             <thead>
                 <tr id="feeSummaryTableHeader">
@@ -912,6 +912,7 @@
         let studentFeeSummaryTableBody; // New tbody for fee summary
         let feeSummaryTableHeader; // New header for fee summary
         let feeSummaryTableFooter; // New footer for fee summary
+        let feeSummaryTitle; // New: Reference to the title for summary table
 
         let monthlySelectionModal;
         let closeMonthlySelectionModalBtn;
@@ -1412,6 +1413,21 @@
             const studentsSnapshot = await studentsCollection.orderBy('studentNumber').get();
             const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+            // Fetch all weekly scores for the selected month across all students concurrently
+            const weeklyScoresPromises = allStudents.map(student =>
+                weeklyScoresCollection.doc(student.id).collection('months').doc(month).get()
+            );
+            const weeklyScoresDocs = await Promise.all(weeklyScoresPromises);
+
+            // Create a map for quick lookup of scores by student ID
+            const studentScoresMap = new Map();
+            weeklyScoresDocs.forEach(doc => {
+                if (doc.exists) {
+                    // doc.ref.parent.parent.id gives the studentId from the path 'studentWeeklyScores/{studentId}/months/{month}'
+                    studentScoresMap.set(doc.ref.parent.parent.id, doc.data());
+                }
+            });
+
             for (const student of allStudents) {
                 const row = allStudentsWeeklyScoresTableBody.insertRow();
                 row.dataset.studentId = student.id; // Store student ID on the row
@@ -1429,10 +1445,8 @@
                 row.appendChild(studentIdCell);
                 row.appendChild(studentNameCell);
 
-                // Fetch weekly scores for this student and month
-                const docRef = weeklyScoresCollection.doc(student.id).collection('months').doc(month);
-                const doc = await docRef.get();
-                const studentWeeklyScores = doc.exists ? doc.data() : {};
+                // Get scores from the map
+                const studentWeeklyScores = studentScoresMap.get(student.id) || {};
 
                 for (let i = 1; i <= numWeeksInMonth; i++) {
                     const weekKey = `week${i}`;
@@ -1515,6 +1529,8 @@
 
             // Clear existing table content
             studentFeeSummaryTableBody.innerHTML = '';
+            feeSummaryTableFooter.innerHTML = ''; // Clear footer too
+
             // Re-render table header for months
             feeSummaryTableHeader.innerHTML = `
                 <th>เลขที่</th>
@@ -1535,6 +1551,23 @@
             const studentsSnapshot = await studentsCollection.orderBy('studentNumber').get();
             const allStudents = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+            // Use a collection group query to get all 'months' subcollection documents
+            const monthsCollectionGroup = db.collectionGroup('months');
+            const allMonthlyScoresSnapshot = await monthsCollectionGroup.get();
+
+            // Organize scores by studentId and month for easy lookup
+            const allStudentsMonthlyScores = {};
+            allMonthlyScoresSnapshot.forEach(doc => {
+                // doc.ref.parent.parent.id gives the studentId
+                // doc.id gives the month name
+                const studentId = doc.ref.parent.parent.id;
+                const monthName = doc.id;
+                if (!allStudentsMonthlyScores[studentId]) {
+                    allStudentsMonthlyScores[studentId] = {};
+                }
+                allStudentsMonthlyScores[studentId][monthName] = doc.data();
+            });
+
             let grandTotalForAllStudents = 0; // Initialize grand total
 
             for (const student of allStudents) {
@@ -1547,9 +1580,7 @@
                 let overallTotalForStudent = 0; // Total for current student across all months
 
                 for (const month of months) {
-                    const docRef = weeklyScoresCollection.doc(student.id).collection('months').doc(month);
-                    const doc = await docRef.get();
-                    const studentWeeklyScores = doc.exists ? doc.data() : {};
+                    const studentWeeklyScores = (allStudentsMonthlyScores[student.id] && allStudentsMonthlyScores[student.id][month]) || {};
                     
                     let monthlyTotal = 0;
                     for (let i = 1; i <= numWeeksInMonth; i++) {
@@ -1571,7 +1602,6 @@
             }
 
             // Add a footer row for the grand total
-            feeSummaryTableFooter.innerHTML = ''; // Clear any existing footer content
             const totalRow = feeSummaryTableFooter.insertRow();
             const emptyCell1 = document.createElement('td');
             emptyCell1.colSpan = 2; // Span across "เลขที่" and "รหัสนักเรียน"
@@ -1592,6 +1622,9 @@
             grandTotalCell.style.fontWeight = 'bold';
             grandTotalCell.style.fontSize = '1.2em'; // Make it larger
             totalRow.appendChild(grandTotalCell);
+
+            // Update the title to include the grand total
+            feeSummaryTitle.textContent = `สรุปค่าห้องของนักเรียน ห้อง 3/1 (ต่อเดือน) - รวมทั้งหมด: ${grandTotalForAllStudents} บาท`;
         }
 
 
@@ -1646,6 +1679,7 @@
             studentFeeSummaryTableBody = document.getElementById('studentFeeSummaryTableBody'); // Assign new tbody
             feeSummaryTableHeader = document.getElementById('feeSummaryTableHeader'); // Assign new header row
             feeSummaryTableFooter = document.getElementById('feeSummaryTableFooter'); // Assign new footer
+            feeSummaryTitle = document.getElementById('feeSummaryTitle'); // Assign new title element
 
 
             monthlySelectionModal = document.getElementById('monthlySelectionModal');
