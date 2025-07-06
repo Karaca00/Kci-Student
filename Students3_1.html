@@ -726,7 +726,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>ลำดับ</th>
+                    <th>เลขที่</th>
                     <th>รหัสนักเรียน</th>
                     <th>ชื่อ - นามสกุล</th>
                     <th>รายละเอียด</th>
@@ -902,7 +902,7 @@
             <p id="allStudentsWeeklyPasswordErrorMessageAll" style="color: red; text-align: center; margin-top: 10px;"></p>
         </div>
         <div class="score-modal-actions">
-            <button class="save-btn" id="saveAllStudentsWeeklyScoresBtn">บันทึกค่าห้องทั้งหมด</button>
+            <button class="save-btn" id="saveAllStudentsWeeklyScoresBtn">บันทึกค่าห้อง</button>
             <button class="cancel-btn" id="cancelAllStudentsWeeklyScoresBtn">ยกเลิก</button>
         </div>
     </div>
@@ -1362,7 +1362,7 @@
                     }, 2000);
 
                     // Log the save action
-                    logSaveAction(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, "แก้ไขข้อมูลนักเรียน", null); // No amount change for general info
+                    logSaveAction(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, "แก้ไขข้อมูลนักเรียน", null, null, updatedStudentDetails.studentNumber); // Pass studentNumber
                 } else {
                     passwordErrorMessage.textContent = "ไม่มีการเปลี่ยนแปลงข้อมูลนักเรียน";
                     passwordErrorMessage.style.color = "orange";
@@ -1539,12 +1539,21 @@
                                                                .get();
                 const oldScores = oldScoresDoc.exists ? oldScoresDoc.data() : {};
                 let oldMonthlyTotal = 0;
+                let changedWeeks = []; // Array to store changed weeks
+
                 for (let i = 1; i <= numWeeks; i++) {
-                    oldMonthlyTotal += (oldScores[`week${i}`] !== undefined ? oldScores[`week${i}`] : 0);
+                    const weekKey = `week${i}`;
+                    const oldScore = oldScores[weekKey] !== undefined ? oldScores[weekKey] : 0;
+                    const newScore = scoresToSave[weekKey] !== undefined ? scoresToSave[weekKey] : 0;
+                    
+                    if (newScore !== oldScore) {
+                        changedWeeks.push(`สัปดาห์ที่ ${i}`);
+                    }
+                    oldMonthlyTotal += oldScore;
                 }
 
                 // Only save and log if scores have changed
-                if (areScoresDifferent(scoresToSave, oldScores)) {
+                if (changedWeeks.length > 0) {
                     await weeklyScoresCollection.doc(currentWeeklyStudentId)
                                                 .collection('months')
                                                 .doc(currentWeeklyMonth)
@@ -1553,9 +1562,13 @@
                     weeklyScoresModal.style.display = 'none'; // Hide modal
                     weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
 
-                    const studentName = studentNameMap.get(currentWeeklyStudentId) || 'ไม่พบชื่อนักเรียน';
+                    const student = studentsData.find(s => s.id === currentWeeklyStudentId); // Find student to get studentNumber
+                    const studentName = student ? `${student.prefix} ${student.name}` : 'ไม่พบชื่อนักเรียน';
+                    const studentNumber = student ? student.studentNumber : null;
+
                     const amountChange = newMonthlyTotal - oldMonthlyTotal;
-                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange);
+                    const changedWeeksInfo = changedWeeks.join(', '); // Join changed weeks into a string
+                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange, changedWeeksInfo, studentNumber); // Pass studentNumber
                 } else {
                     alert('ไม่มีการเปลี่ยนแปลงค่าห้อง');
                     weeklyScoresModal.style.display = 'none'; // Hide modal
@@ -1731,7 +1744,7 @@
 
             let changesMade = false; // Flag to track if any changes were actually saved
 
-            rows.forEach(row => {
+            for (const row of rows) {
                 const studentId = row.dataset.studentId;
                 const scoresToSave = {};
                 const inputs = row.querySelectorAll('input[type="number"]');
@@ -1740,24 +1753,37 @@
                 });
 
                 const originalScores = originalStudentScoresMap.get(studentId) || {};
+                let changedWeeks = []; // Array to store changed weeks for this student
+                let newMonthlyTotalForLog = 0;
+                let oldMonthlyTotalForLog = 0;
 
-                // Only proceed if scores have actually changed
-                if (areScoresDifferent(scoresToSave, originalScores)) {
+                for (let i = 1; i <= numWeeksInMonth; i++) {
+                    const weekKey = `week${i}`;
+                    const oldScore = originalScores[weekKey] !== undefined ? originalScores[weekKey] : 0;
+                    const newScore = scoresToSave[weekKey] !== undefined ? scoresToSave[weekKey] : 0;
+
+                    if (newScore !== oldScore) {
+                        changedWeeks.push(`สัปดาห์ที่ ${i}`);
+                    }
+                    newMonthlyTotalForLog += newScore;
+                    oldMonthlyTotalForLog += oldScore;
+                }
+
+                // Only proceed if scores have actually changed for this student
+                if (changedWeeks.length > 0) {
                     const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(currentAllStudentsWeeklyScoresMonth);
                     batch.set(docRef, scoresToSave, { merge: true });
                     changesMade = true; // Set flag to true if any change is detected
 
-                    const studentName = studentNameMap.get(studentId) || 'ไม่พบชื่อนักเรียน';
-                    let newMonthlyTotalForLog = 0;
-                    let oldMonthlyTotalForLog = 0;
-                    for (let i = 1; i <= numWeeksInMonth; i++) {
-                        newMonthlyTotalForLog += (scoresToSave[`week${i}`] !== undefined ? scoresToSave[`week${i}`] : 0);
-                        oldMonthlyTotalForLog += (originalScores[`week${i}`] !== undefined ? originalScores[`week${i}`] : 0);
-                    }
+                    const student = studentsData.find(s => s.id === studentId); // Find student to get studentNumber
+                    const studentName = student ? `${student.prefix} ${student.name}` : 'ไม่พบชื่อนักเรียน';
+                    const studentNumber = student ? student.studentNumber : null;
+
                     const amountChange = newMonthlyTotalForLog - oldMonthlyTotalForLog;
-                    savePromises.push(logSaveAction(studentId, studentName, `บันทึกค่าห้องทั้งหมดเดือน${currentAllStudentsWeeklyScoresMonth}`, amountChange));
+                    const changedWeeksInfo = changedWeeks.join(', ');
+                    savePromises.push(logSaveAction(studentId, studentName, `บันทึกค่าห้องทั้งหมดเดือน${currentAllStudentsWeeklyScoresMonth}`, amountChange, changedWeeksInfo, studentNumber)); // Pass studentNumber
                 }
-            });
+            }
 
             try {
                 if (changesMade) {
@@ -1906,13 +1932,15 @@
         }
 
         // --- NEW Save History Functions ---
-        async function logSaveAction(studentId, studentName, details, amountChange = null) {
+        async function logSaveAction(studentId, studentName, details, amountChange = null, changedWeeksInfo = null, studentNumber = null) {
             try {
                 await saveHistoryCollection.add({
                     studentId: studentId,
                     studentName: studentName, // Add student name
                     details: details,
                     amountChange: amountChange, // Store amountChange
+                    changedWeeksDetails: changedWeeksInfo, // Store changed weeks info
+                    studentNumber: studentNumber, // Store student number
                     timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
                 });
                 console.log("Save action logged successfully.");
@@ -1946,7 +1974,6 @@
                     return;
                 }
 
-                let index = 1;
                 snapshot.forEach(doc => {
                     const history = doc.data();
                     const row = saveHistoryTableBody.insertRow();
@@ -1955,9 +1982,12 @@
                     if (history.amountChange !== null) {
                         amountChangeDisplay = `${history.amountChange >= 0 ? '+' : ''}${history.amountChange} บาท`;
                     }
+                    if (history.changedWeeksDetails) {
+                        amountChangeDisplay += ` (${history.changedWeeksDetails})`; // Append changed weeks info
+                    }
 
                     row.innerHTML = `
-                        <td>${index++}</td>
+                        <td>${history.studentNumber || '-'}</td>
                         <td>${history.studentId || '-'}</td>
                         <td>${history.studentName || '-'}</td>
                         <td>${history.details || '-'}</td>
