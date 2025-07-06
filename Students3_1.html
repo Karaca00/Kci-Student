@@ -1102,21 +1102,21 @@
 
         let currentWeeklyScores; // Declare at a scope accessible by loadWeeklyScoresFromFirebase and renderWeeklyScores
 
-        // Map to store student names for quick lookup in history table
-        const studentNameMap = new Map();
+        // Map to store student names and numbers for quick lookup in history table
+        const studentInfoMap = new Map();
 
 
         async function loadStudentsFromFirebase() {
             try {
                 const snapshot = await db.collection("students3_1").get(); // Use students3_1 collection
                 studentsData.length = 0; // Clear the existing hardcoded data
-                studentNameMap.clear(); // Clear existing map
+                studentInfoMap.clear(); // Clear existing map
 
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const student = { ...data, studentNumber: data.studentNumber || getStudentNumberFromId(data.id) };
                     studentsData.push(student);
-                    studentNameMap.set(student.id, `${student.prefix} ${student.name}`); // Populate name map
+                    studentInfoMap.set(student.id, { name: `${student.prefix} ${student.name}`, studentNumber: student.studentNumber }); // Populate name and number map
                 });
                 console.log("All student details loaded from Firebase.");
                 // Sort studentsData by studentNumber for consistent display
@@ -1267,7 +1267,6 @@
 
             if (!currentStudentId) {
                 console.error("No student selected for saving info.");
-                alert('ไม่พบนักเรียนที่เลือกเพื่อบันทึกข้อมูล');
                 return;
             }
 
@@ -1346,7 +1345,7 @@
                         studentsData.push({ ...updatedStudentDetails });
                     }
                     studentsData.sort((a, b) => a.studentNumber - b.studentNumber); // Re-sort locally
-                    studentNameMap.set(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`); // Update name map
+                    studentInfoMap.set(newStudentId, { name: `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, studentNumber: updatedStudentDetails.studentNumber }); // Update name map
 
                     currentStudentId = newStudentId; // Update current ID if it changed
 
@@ -1539,7 +1538,7 @@
                                                                .get();
                 const oldScores = oldScoresDoc.exists ? oldScoresDoc.data() : {};
                 let oldMonthlyTotal = 0;
-                let changedWeeks = []; // Array to store changed weeks
+                let detailedWeeklyChanges = []; // Array to store detailed changes like {week: "สัปดาห์ที่ 1", old: 50, new: 60, change: 10}
 
                 for (let i = 1; i <= numWeeks; i++) {
                     const weekKey = `week${i}`;
@@ -1547,37 +1546,38 @@
                     const newScore = scoresToSave[weekKey] !== undefined ? scoresToSave[weekKey] : 0;
                     
                     if (newScore !== oldScore) {
-                        changedWeeks.push(`สัปดาห์ที่ ${i}`);
+                        detailedWeeklyChanges.push({
+                            week: `สัปดาห์ที่ ${i}`,
+                            oldScore: oldScore,
+                            newScore: newScore,
+                            change: newScore - oldScore
+                        });
                     }
                     oldMonthlyTotal += oldScore;
                 }
 
                 // Only save and log if scores have changed
-                if (changedWeeks.length > 0) {
+                if (detailedWeeklyChanges.length > 0) {
                     await weeklyScoresCollection.doc(currentWeeklyStudentId)
                                                 .collection('months')
                                                 .doc(currentWeeklyMonth)
                                                 .set(scoresToSave, { merge: true });
-                    alert('บันทึกค่าห้องรายสัปดาห์สำเร็จ!');
                     weeklyScoresModal.style.display = 'none'; // Hide modal
                     weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
 
-                    const student = studentsData.find(s => s.id === currentWeeklyStudentId); // Find student to get studentNumber
-                    const studentName = student ? `${student.prefix} ${student.name}` : 'ไม่พบชื่อนักเรียน';
-                    const studentNumber = student ? student.studentNumber : null;
+                    const studentInfo = studentInfoMap.get(currentWeeklyStudentId) || { name: 'ไม่พบชื่อนักเรียน', studentNumber: null };
+                    const studentName = studentInfo.name;
+                    const studentNumber = studentInfo.studentNumber;
 
                     const amountChange = newMonthlyTotal - oldMonthlyTotal;
-                    const changedWeeksInfo = changedWeeks.join(', '); // Join changed weeks into a string
-                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange, changedWeeksInfo, studentNumber); // Pass studentNumber
+                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange, detailedWeeklyChanges, studentNumber); // Pass detailedWeeklyChanges
                 } else {
-                    alert('ไม่มีการเปลี่ยนแปลงค่าห้อง');
                     weeklyScoresModal.style.display = 'none'; // Hide modal
                     weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
                 }
 
             } catch (error) {
                 console.error("Error saving weekly scores:", error);
-                alert('เกิดข้อผิดพลาดในการบันทึกค่าห้องรายสัปดาห์: ' + error.message);
             }
         }
 
@@ -1753,7 +1753,7 @@
                 });
 
                 const originalScores = originalStudentScoresMap.get(studentId) || {};
-                let changedWeeks = []; // Array to store changed weeks for this student
+                let detailedWeeklyChangesForStudent = []; // Detailed info for this specific student
                 let newMonthlyTotalForLog = 0;
                 let oldMonthlyTotalForLog = 0;
 
@@ -1763,25 +1763,29 @@
                     const newScore = scoresToSave[weekKey] !== undefined ? scoresToSave[weekKey] : 0;
 
                     if (newScore !== oldScore) {
-                        changedWeeks.push(`สัปดาห์ที่ ${i}`);
+                        detailedWeeklyChangesForStudent.push({
+                            week: `สัปดาห์ที่ ${i}`,
+                            oldScore: oldScore,
+                            newScore: newScore,
+                            change: newScore - oldScore
+                        });
                     }
                     newMonthlyTotalForLog += newScore;
                     oldMonthlyTotalForLog += oldScore;
                 }
 
                 // Only proceed if scores have actually changed for this student
-                if (changedWeeks.length > 0) {
+                if (detailedWeeklyChangesForStudent.length > 0) {
                     const docRef = weeklyScoresCollection.doc(studentId).collection('months').doc(currentAllStudentsWeeklyScoresMonth);
                     batch.set(docRef, scoresToSave, { merge: true });
                     changesMade = true; // Set flag to true if any change is detected
 
-                    const student = studentsData.find(s => s.id === studentId); // Find student to get studentNumber
-                    const studentName = student ? `${student.prefix} ${student.name}` : 'ไม่พบชื่อนักเรียน';
-                    const studentNumber = student ? student.studentNumber : null;
+                    const studentInfo = studentInfoMap.get(studentId) || { name: 'ไม่พบชื่อนักเรียน', studentNumber: null };
+                    const studentName = studentInfo.name;
+                    const studentNumber = studentInfo.studentNumber;
 
                     const amountChange = newMonthlyTotalForLog - oldMonthlyTotalForLog;
-                    const changedWeeksInfo = changedWeeks.join(', ');
-                    savePromises.push(logSaveAction(studentId, studentName, `บันทึกค่าห้องทั้งหมดเดือน${currentAllStudentsWeeklyScoresMonth}`, amountChange, changedWeeksInfo, studentNumber)); // Pass studentNumber
+                    savePromises.push(logSaveAction(studentId, studentName, `บันทึกค่าห้องทั้งหมดเดือน${currentAllStudentsWeeklyScoresMonth}`, amountChange, detailedWeeklyChangesForStudent, studentNumber)); // Pass detailedWeeklyChangesForStudent
                 }
             }
 
@@ -1790,10 +1794,6 @@
                     await batch.commit();
                     // Wait for all individual log entries to complete
                     await Promise.all(savePromises);
-
-                    alert('บันทึกค่าห้องของนักเรียนทั้งหมดสำเร็จ!');
-                } else {
-                    alert('ไม่มีการเปลี่ยนแปลงค่าห้องของนักเรียน');
                 }
                 
                 // After saving (or if no changes), go back to the default student list view
@@ -1814,7 +1814,6 @@
             }
             catch (error) {
                 console.error("Error saving all students' weekly scores:", error);
-                alert('เกิดข้อผิดพลาดในการบันทึกค่าห้องของนักเรียนทั้งหมด: ' + error.message);
             }
         }
 
@@ -1932,14 +1931,14 @@
         }
 
         // --- NEW Save History Functions ---
-        async function logSaveAction(studentId, studentName, details, amountChange = null, changedWeeksInfo = null, studentNumber = null) {
+        async function logSaveAction(studentId, studentName, details, amountChange = null, weeklyChangesDetails = null, studentNumber = null) {
             try {
                 await saveHistoryCollection.add({
                     studentId: studentId,
                     studentName: studentName, // Add student name
                     details: details,
                     amountChange: amountChange, // Store amountChange
-                    changedWeeksDetails: changedWeeksInfo, // Store changed weeks info
+                    weeklyChangesDetails: weeklyChangesDetails, // Store detailed weekly changes
                     studentNumber: studentNumber, // Store student number
                     timestamp: firebase.firestore.FieldValue.serverTimestamp() // Use server timestamp
                 });
@@ -1982,8 +1981,15 @@
                     if (history.amountChange !== null) {
                         amountChangeDisplay = `${history.amountChange >= 0 ? '+' : ''}${history.amountChange} บาท`;
                     }
-                    if (history.changedWeeksDetails) {
-                        amountChangeDisplay += ` (${history.changedWeeksDetails})`; // Append changed weeks info
+                    // Check for detailed weekly changes first
+                    if (history.weeklyChangesDetails && history.weeklyChangesDetails.length > 0) {
+                        const weeklyDetails = history.weeklyChangesDetails.map(change => {
+                            const sign = change.change >= 0 ? '+' : '';
+                            return `${change.week} (${sign}${change.change})`;
+                        }).join(', ');
+                        amountChangeDisplay += ` (${weeklyDetails})`;
+                    } else if (history.changedWeeksDetails) { // Fallback for older entries or general monthly changes
+                        amountChangeDisplay += ` (${history.changedWeeksDetails})`;
                     }
 
                     row.innerHTML = `
@@ -2018,7 +2024,6 @@
             try {
                 const snapshot = await saveHistoryCollection.get();
                 if (snapshot.empty) {
-                    alert("ไม่มีประวัติการบันทึกให้ล้าง");
                     closeAdminClearHistoryModal();
                     return;
                 }
@@ -2029,7 +2034,6 @@
                 });
                 await batch.commit();
                 
-                alert("ล้างประวัติเสร็จแล้ว"); // Changed alert message as requested
                 closeAdminClearHistoryModal();
                 // Instead of rendering history, switch back to the student list view
                 studentListTableContainer.style.display = 'block';
@@ -2188,7 +2192,7 @@
             })();
 
 
-            await loadStudentsFromFirebase(); // Load student details from Firebase (into studentsData array and studentNameMap)
+            await loadStudentsFromFirebase(); // Load student details from Firebase (into studentsData array and studentInfoMap)
 
             renderStudentList(); // Render student list table
             renderStudentScores(); // Render scores table
