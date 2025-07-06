@@ -639,6 +639,49 @@
         #adminClearHistoryModal .modal-content .modal-actions .cancel-btn:hover {
             background-color: #5a6268;
         }
+
+        /* New CSS for toggle switch in settings */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            transition: background-color 0.3s;
+            -webkit-appearance: none; /* Hide default checkbox */
+            -moz-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            outline: none; /* Remove outline on focus */
+        }
+
+        .toggle-switch:checked {
+            background-color: #28a745; /* Green when checked */
+        }
+
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3); /* Add a subtle shadow */
+        }
+
+        .toggle-switch:checked::before {
+            transform: translateX(20px);
+        }
+
+        /* New: Admin Password Modal for Settings Entry */
+        #settingsAdminPasswordModal .modal-content {
+            max-width: 400px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -743,7 +786,27 @@
     <!-- New: Settings Container -->
     <div id="settingsContainer" class="settings-container" style="display:none;">
         <h2>ตั้งค่า</h2>
-        <button id="clearHistoryBtn" class="settings-button">ล้างประวัติการบันทึก</button>
+        <div id="historyCountDisplay" style="margin-bottom: 15px; font-size: 1.1em; font-weight: bold; color: #34495e;"></div>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <label for="autoDeleteToggle" style="font-weight: bold;">เปิด/ปิด ลบประวัติอัตโนมัติ:</label>
+            <input type="checkbox" id="autoDeleteToggle" class="toggle-switch">
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <label for="historyLimitInput" style="font-weight: bold;">ขีดจำกัดประวัติ:</label>
+            <input type="number" id="historyLimitInput" min="1" value="100" readonly style="width: 80px; text-align: center;">
+            <button id="editHistoryLimitBtn" class="edit-btn" style="padding: 5px 10px;">แก้ไข</button>
+        </div>
+        <div id="historyLimitEditActions" style="display: none; flex-direction: column; align-items: center; gap: 10px; margin-top: 10px;">
+            <p id="historyLimitErrorMessage" style="color: red; text-align: center;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button id="saveHistoryLimitBtn" class="save-btn" style="padding: 8px 15px;">บันทึกขีดจำกัด</button>
+                <button id="cancelHistoryLimitBtn" class="cancel-btn" style="padding: 8px 15px;">ยกเลิก</button>
+            </div>
+        </div>
+
+        <button id="clearHistoryBtn" class="settings-button">ล้างประวัติการบันทึกทั้งหมด</button>
     </div>
 
     <!-- Student Detail Modal (for general student info) -->
@@ -907,18 +970,31 @@
         </div>
     </div>
 
-    <!-- Admin Password Confirmation Modal for Clearing History -->
+    <!-- Admin Confirmation Modal for Clearing History (NO PASSWORD) -->
     <div id="adminClearHistoryModal" class="modal-overlay">
         <div class="modal-content">
             <span class="close-button" id="closeAdminClearHistoryModalBtn">&times;</span>
             <h3>ยืนยันการล้างประวัติ</h3>
-            <p>คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการบันทึกทั้งหมด?</p>
-            <label for="clearHistoryAdminPasswordInput">รหัสผ่านแอดมิน:</label>
-            <input type="password" id="clearHistoryAdminPasswordInput" placeholder="กรอกรหัสผ่านเพื่อยืนยัน">
-            <p id="clearHistoryPasswordErrorMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
+            <p>คุณแน่ใจใช่มั้ยที่จะลบประวัติทั้งหมด?</p>
+            <p style="color: red; font-weight: bold; margin-top: 10px;">เมื่อกดล้างประวัติแล้วจะไม่สามารถกู้คืนได้</p>
             <div class="modal-actions">
                 <button class="confirm-btn" id="confirmClearHistoryBtn">ยืนยัน</button>
                 <button class="cancel-btn" id="cancelClearHistoryBtn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New: Admin Password Modal for Settings Entry -->
+    <div id="settingsAdminPasswordModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-button" id="closeSettingsAdminPasswordModalBtn">&times;</span>
+            <h3>กรุณาใส่รหัสผ่านแอดมิน</h3>
+            <label for="settingsAdminPasswordInput">รหัสผ่าน:</label>
+            <input type="password" id="settingsAdminPasswordInput" placeholder="กรอกรหัสผ่านแอดมิน">
+            <p id="settingsAdminPasswordErrorMessage" style="color: red; text-align: center; margin-top: 10px;"></p>
+            <div class="modal-actions">
+                <button class="confirm-btn" id="confirmSettingsAdminPasswordBtn">ยืนยัน</button>
+                <button class="cancel-btn" id="cancelSettingsAdminPasswordBtn">ยกเลิก</button>
             </div>
         </div>
     </div>
@@ -999,6 +1075,8 @@
         const monthlyScoresCollection = db.collection('studentMonthlyScores'); // This collection might be less used now
         const weeklyScoresCollection = db.collection('studentWeeklyScores'); // Collection for weekly scores
         const saveHistoryCollection = db.collection('saveHistory'); // New: Collection for save history
+        const appSettingsCollection = db.collection('settings'); // New: Collection for app settings
+        const appSettingsDocRef = appSettingsCollection.doc('appSettings'); // Single document for app settings
 
         // Admin password (for demonstration, use Firebase Security Rules in production)
         const ADMIN_PASSWORD = "301";
@@ -1060,6 +1138,17 @@
         let settingsContainer; // New: Settings container
         let clearHistoryBtn; // New: Clear history button
 
+        // New DOM elements for settings
+        let historyCountDisplay;
+        let autoDeleteToggle;
+        let historyLimitInput;
+        let editHistoryLimitBtn;
+        let saveHistoryLimitBtn;
+        let cancelHistoryLimitBtn;
+        let historyLimitEditActions;
+        let historyLimitErrorMessage;
+
+
         let monthlySelectionModal;
         let closeMonthlySelectionModalBtn;
         let monthlySelectionModalStudentName;
@@ -1094,10 +1183,18 @@
 
         let adminClearHistoryModal; // New: Admin password modal for clearing history
         let closeAdminClearHistoryModalBtn;
-        let clearHistoryAdminPasswordInput;
-        let clearHistoryPasswordErrorMessage;
+        // Removed: clearHistoryAdminPasswordInput; // This element is no longer in HTML
+        let clearHistoryPasswordErrorMessage; // This element is no longer in HTML
         let confirmClearHistoryBtn;
         let cancelClearHistoryBtn;
+
+        // New: Admin password modal for Settings entry
+        let settingsAdminPasswordModal;
+        let closeSettingsAdminPasswordModalBtn;
+        let settingsAdminPasswordInput;
+        let settingsAdminPasswordErrorMessage;
+        let confirmSettingsAdminPasswordBtn;
+        let cancelSettingsAdminPasswordBtn;
 
 
         let currentWeeklyScores; // Declare at a scope accessible by loadWeeklyScoresFromFirebase and renderWeeklyScores
@@ -1361,7 +1458,8 @@
                     }, 2000);
 
                     // Log the save action
-                    logSaveAction(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, "แก้ไขข้อมูลนักเรียน", null, null, updatedStudentDetails.studentNumber); // Pass studentNumber
+                    await logSaveAction(newStudentId, `${updatedStudentDetails.prefix} ${updatedStudentDetails.name}`, "แก้ไขข้อมูลนักเรียน", null, null, updatedStudentDetails.studentNumber); // Pass studentNumber
+                    await checkAndTrimHistory(); // Check and trim history after save
                 } else {
                     passwordErrorMessage.textContent = "ไม่มีการเปลี่ยนแปลงข้อมูลนักเรียน";
                     passwordErrorMessage.style.color = "orange";
@@ -1570,7 +1668,8 @@
                     const studentNumber = studentInfo.studentNumber;
 
                     const amountChange = newMonthlyTotal - oldMonthlyTotal;
-                    logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange, detailedWeeklyChanges, studentNumber); // Pass detailedWeeklyChanges
+                    await logSaveAction(currentWeeklyStudentId, studentName, `บันทึกค่าห้องเดือน${currentWeeklyMonth}`, amountChange, detailedWeeklyChanges, studentNumber); // Pass detailedWeeklyChanges
+                    await checkAndTrimHistory(); // Check and trim history after save
                 } else {
                     weeklyScoresModal.style.display = 'none'; // Hide modal
                     weeklyAdminPasswordSection.style.display = 'none'; // Hide password section
@@ -1657,6 +1756,7 @@
                     // doc.ref.parent.parent.id gives the studentId from the path 'studentWeeklyScores/{studentId}/months/{month}'
                     studentScoresMap.set(doc.ref.parent.parent.id, doc.data());
                 }
+                
             });
 
             for (const student of allStudents) {
@@ -1794,6 +1894,7 @@
                     await batch.commit();
                     // Wait for all individual log entries to complete
                     await Promise.all(savePromises);
+                    await checkAndTrimHistory(); // Check and trim history after save
                 }
                 
                 // After saving (or if no changes), go back to the default student list view
@@ -1963,6 +2064,12 @@
 
             try {
                 const snapshot = await saveHistoryCollection.orderBy('timestamp', 'desc').get();
+                
+                // Update history count display in settings
+                if (historyCountDisplay) { // Check if element exists before updating
+                    historyCountDisplay.textContent = `จำนวนประวัติการบันทึก: ${snapshot.size}`;
+                }
+
                 if (snapshot.empty) {
                     const row = saveHistoryTableBody.insertRow();
                     const cell = row.insertCell(0);
@@ -2012,14 +2119,134 @@
             }
         }
 
-        // --- NEW: Clear History Function ---
-        async function clearSaveHistoryFromFirebase() {
-            const password = clearHistoryAdminPasswordInput.value;
-            if (password !== ADMIN_PASSWORD) {
-                clearHistoryPasswordErrorMessage.textContent = "รหัสผ่านแอดมินไม่ถูกต้อง";
+        // --- NEW: App Settings Functions ---
+        async function loadAppSettings() {
+            try {
+                const doc = await appSettingsDocRef.get();
+                if (doc.exists) {
+                    const settings = doc.data();
+                    autoDeleteToggle.checked = settings.autoDeleteEnabled || false;
+                    historyLimitInput.value = settings.historyLimit || 100;
+                } else {
+                    // Set default settings if document doesn't exist
+                    await appSettingsDocRef.set({
+                        autoDeleteEnabled: false,
+                        historyLimit: 100
+                    });
+                    autoDeleteToggle.checked = false;
+                    historyLimitInput.value = 100;
+                }
+            } catch (error) {
+                console.error("Error loading app settings:", error);
+            }
+        }
+
+        async function saveAppSettings(newSettings) {
+            try {
+                await appSettingsDocRef.set(newSettings, { merge: true });
+                console.log("App settings saved successfully.");
+                return true;
+            } catch (error) {
+                console.error("Error saving app settings:", error);
+                return false;
+            }
+        }
+
+        function toggleHistoryLimitEditMode(isEditMode) {
+            if (isEditMode) {
+                historyLimitInput.removeAttribute('readonly');
+                editHistoryLimitBtn.style.display = 'none';
+                historyLimitEditActions.style.display = 'flex';
+                // Removed: historyLimitAdminPasswordInput.focus(); // No longer needed here
+            } else {
+                historyLimitInput.setAttribute('readonly', true);
+                editHistoryLimitBtn.style.display = 'inline-block';
+                historyLimitEditActions.style.display = 'none';
+                // Removed: historyLimitAdminPasswordInput.value = ''; // No longer needed here
+                historyLimitErrorMessage.textContent = ''; // Clear error
+                loadAppSettings(); // Reload to revert to saved value if cancelled
+            }
+        }
+
+        async function handleSaveHistoryLimit() {
+            // Password check is now done at the entry to settings
+            historyLimitErrorMessage.textContent = "";
+
+            const newLimit = parseInt(historyLimitInput.value);
+            if (isNaN(newLimit) || newLimit <= 0) {
+                historyLimitErrorMessage.textContent = "ขีดจำกัดต้องเป็นตัวเลขและมากกว่า 0";
                 return;
             }
-            clearHistoryPasswordErrorMessage.textContent = ""; // Clear error message
+
+            const currentSettings = (await appSettingsDocRef.get()).data() || {};
+            const updatedSettings = { ...currentSettings, historyLimit: newLimit };
+
+            const success = await saveAppSettings(updatedSettings);
+            if (success) {
+                toggleHistoryLimitEditMode(false);
+                await checkAndTrimHistory(); // Run trim immediately after limit change
+            } else {
+                historyLimitErrorMessage.textContent = "เกิดข้อผิดพลาดในการบันทึกขีดจำกัด";
+            }
+        }
+
+        async function checkAndTrimHistory() {
+            try {
+                const settingsDoc = await appSettingsDocRef.get();
+                if (!settingsDoc.exists) return; // No settings, do nothing
+
+                const settings = settingsDoc.data();
+                
+                const snapshot = await saveHistoryCollection.orderBy('timestamp', 'desc').get();
+                const currentCount = snapshot.size;
+
+                if (historyCountDisplay) { // Update history count display
+                    historyCountDisplay.textContent = `จำนวนประวัติการบันทึก: ${currentCount}`;
+                }
+
+                if (!settings.autoDeleteEnabled) {
+                    return; // Auto-delete is disabled, just updated count and return
+                }
+
+                const limit = settings.historyLimit || 100; // Default limit if not set
+
+                if (currentCount > limit) {
+                    const recordsToDelete = snapshot.docs.slice(limit); // Get records beyond the limit (oldest ones)
+                    const batch = db.batch();
+                    recordsToDelete.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                    console.log(`Deleted ${recordsToDelete.length} old history records.`);
+                    // Update history count again after deletion
+                    if (historyCountDisplay) {
+                        historyCountDisplay.textContent = `จำนวนประวัติการบันทึก: ${limit}`; // Should now be at the limit
+                    }
+                    // Re-render history if currently viewing history table
+                    if (saveHistoryTableContainer.style.display === 'block') {
+                        renderSaveHistory();
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking and trimming history:", error);
+            }
+        }
+
+
+        // --- NEW: Admin Clear History Modal Functions ---
+        function openAdminClearHistoryModal() {
+            adminClearHistoryModal.style.display = 'flex';
+            // No password input to clear, so no textContent to set
+            // clearHistoryPasswordErrorMessage.textContent = ''; // Removed this line
+        }
+
+        function closeAdminClearHistoryModal() {
+            adminClearHistoryModal.style.display = 'none';
+        }
+
+        async function clearSaveHistoryFromFirebase() {
+            // No password check needed here
+            // clearHistoryPasswordErrorMessage.textContent = ""; // Removed this line
 
             try {
                 const snapshot = await saveHistoryCollection.get();
@@ -2033,7 +2260,6 @@
                     batch.delete(doc.ref);
                 });
                 await batch.commit();
-                
                 closeAdminClearHistoryModal();
                 // Instead of rendering history, switch back to the student list view
                 studentListTableContainer.style.display = 'block';
@@ -2050,21 +2276,54 @@
                 ScoresHistoryBtn.classList.remove('active');
                 SettingBtn.classList.remove('active');
                 renderStudentList(); // Re-render student list
+                await renderSaveHistory(); // Update history count in settings after clearing
             } catch (error) {
                 console.error("Error clearing save history:", error);
-                clearHistoryPasswordErrorMessage.textContent = `เกิดข้อผิดพลาดในการล้างประวัติ: ${error.message}`;
+                // clearHistoryPasswordErrorMessage.textContent = `เกิดข้อผิดพลาดในการล้างประวัติ: ${error.message}`; // Removed this line
             }
         }
 
-        // --- NEW: Admin Clear History Modal Functions ---
-        function openAdminClearHistoryModal() {
-            adminClearHistoryModal.style.display = 'flex';
-            clearHistoryAdminPasswordInput.value = ''; // Clear password input
-            clearHistoryPasswordErrorMessage.textContent = ''; // Clear error message
+        // --- NEW: Settings Admin Password Modal Functions ---
+        function openSettingsAdminPasswordModal() {
+            settingsAdminPasswordModal.style.display = 'flex';
+            settingsAdminPasswordInput.value = ''; // Clear password input
+            settingsAdminPasswordErrorMessage.textContent = ''; // Clear error message
+            settingsAdminPasswordInput.focus(); // Focus on the password input
         }
 
-        function closeAdminClearHistoryModal() {
-            adminClearHistoryModal.style.display = 'none';
+        function closeSettingsAdminPasswordModal() {
+            settingsAdminPasswordModal.style.display = 'none';
+        }
+
+        async function handleSettingsAdminPasswordConfirm() {
+            const password = settingsAdminPasswordInput.value;
+            if (password !== ADMIN_PASSWORD) {
+                settingsAdminPasswordErrorMessage.textContent = "รหัสผ่านแอดมินไม่ถูกต้อง";
+                return;
+            }
+            settingsAdminPasswordErrorMessage.textContent = ""; // Clear error message
+            closeSettingsAdminPasswordModal();
+
+            // Proceed to show settings page
+            SettingBtn.classList.add('active');
+            showStudentListBtn.classList.remove('active');
+            showStudentScoresBtn.classList.remove('active');
+            showStudentScoresBtnAll.classList.remove('active');
+            showStudentFeeSummaryBtn.classList.remove('active');
+            ScoresHistoryBtn.classList.remove('active');
+
+            // Hide all other main containers
+            studentListTableContainer.style.display = 'none';
+            scoreTableContainer.style.display = 'none';
+            allStudentsWeeklyScoresMainContainer.style.display = 'none';
+            allStudentsMonthSelectionModal.style.display = 'none';
+            studentFeeSummaryTableContainer.style.display = 'none';
+            saveHistoryTableContainer.style.display = 'none'; 
+
+            // Show settings container
+            settingsContainer.style.display = 'flex';
+            await loadAppSettings(); // Load settings when the settings page is opened
+            await checkAndTrimHistory(); // Update history count when settings are opened
         }
 
 
@@ -2127,6 +2386,16 @@
             settingsContainer = document.getElementById('settingsContainer'); // Assign settings container
             clearHistoryBtn = document.getElementById('clearHistoryBtn'); // Assign clear history button
 
+            // Assign new settings DOM elements
+            historyCountDisplay = document.getElementById('historyCountDisplay');
+            autoDeleteToggle = document.getElementById('autoDeleteToggle');
+            historyLimitInput = document.getElementById('historyLimitInput');
+            editHistoryLimitBtn = document.getElementById('editHistoryLimitBtn');
+            saveHistoryLimitBtn = document.getElementById('saveHistoryLimitBtn');
+            cancelHistoryLimitBtn = document.getElementById('cancelHistoryLimitBtn');
+            historyLimitEditActions = document.getElementById('historyLimitEditActions');
+            historyLimitErrorMessage = document.getElementById('historyLimitErrorMessage');
+
 
             monthlySelectionModal = document.getElementById('monthlySelectionModal');
             closeMonthlySelectionModalBtn = document.getElementById('closeMonthlySelectionModalBtn');
@@ -2164,10 +2433,18 @@
             // Assign new admin clear history modal elements
             adminClearHistoryModal = document.getElementById('adminClearHistoryModal');
             closeAdminClearHistoryModalBtn = document.getElementById('closeAdminClearHistoryModalBtn');
-            clearHistoryAdminPasswordInput = document.getElementById('clearHistoryAdminPasswordInput');
-            clearHistoryPasswordErrorMessage = document.getElementById('clearHistoryPasswordErrorMessage');
+            // Removed: clearHistoryAdminPasswordInput; // This element is no longer in HTML
+            clearHistoryPasswordErrorMessage = null; // Set to null as it's no longer in HTML
             confirmClearHistoryBtn = document.getElementById('confirmClearHistoryBtn');
             cancelClearHistoryBtn = document.getElementById('cancelClearHistoryBtn');
+
+            // Assign new settings admin password modal elements
+            settingsAdminPasswordModal = document.getElementById('settingsAdminPasswordModal');
+            closeSettingsAdminPasswordModalBtn = document.getElementById('closeSettingsAdminPasswordModalBtn');
+            settingsAdminPasswordInput = document.getElementById('settingsAdminPasswordInput');
+            settingsAdminPasswordErrorMessage = document.getElementById('settingsAdminPasswordErrorMessage');
+            confirmSettingsAdminPasswordBtn = document.getElementById('confirmSettingsAdminPasswordBtn');
+            cancelSettingsAdminPasswordBtn = document.getElementById('cancelSettingsAdminPasswordBtn');
 
 
             // Initial data population for student details if collection is empty
@@ -2193,6 +2470,8 @@
 
 
             await loadStudentsFromFirebase(); // Load student details from Firebase (into studentsData array and studentInfoMap)
+            // Removed: await loadAppSettings(); // Load settings only when entering settings via password
+            // Removed: await checkAndTrimHistory(); // Perform initial history trimming based on loaded settings
 
             renderStudentList(); // Render student list table
             renderStudentScores(); // Render scores table
@@ -2350,24 +2629,9 @@
             });
 
             // --- New: Event Listener for Settings Button ---
-            SettingBtn.addEventListener('click', () => {
-                SettingBtn.classList.add('active');
-                showStudentListBtn.classList.remove('active');
-                showStudentScoresBtn.classList.remove('active');
-                showStudentScoresBtnAll.classList.remove('active');
-                showStudentFeeSummaryBtn.classList.remove('active');
-                ScoresHistoryBtn.classList.remove('active');
-
-                // Hide all other main containers
-                studentListTableContainer.style.display = 'none';
-                scoreTableContainer.style.display = 'none';
-                allStudentsWeeklyScoresMainContainer.style.display = 'none';
-                allStudentsMonthSelectionModal.style.display = 'none';
-                studentFeeSummaryTableContainer.style.display = 'none';
-                saveHistoryTableContainer.style.display = 'none';
-
-                // Show settings container
-                settingsContainer.style.display = 'flex';
+            SettingBtn.addEventListener('click', async () => {
+                // Instead of directly showing settings, show the password modal
+                openSettingsAdminPasswordModal();
             });
 
             // --- New: Event Listeners for Clear History Button and Modal ---
@@ -2380,6 +2644,27 @@
             });
             confirmClearHistoryBtn.addEventListener('click', clearSaveHistoryFromFirebase);
             cancelClearHistoryBtn.addEventListener('click', closeAdminClearHistoryModal);
+
+            // --- New: Event Listeners for History Limit Settings ---
+            autoDeleteToggle.addEventListener('change', async () => {
+                const currentSettings = (await appSettingsDocRef.get()).data() || {};
+                const updatedSettings = { ...currentSettings, autoDeleteEnabled: autoDeleteToggle.checked };
+                await saveAppSettings(updatedSettings);
+                await checkAndTrimHistory(); // Run trim immediately if auto-delete is enabled
+            });
+            editHistoryLimitBtn.addEventListener('click', () => toggleHistoryLimitEditMode(true));
+            saveHistoryLimitBtn.addEventListener('click', handleSaveHistoryLimit);
+            cancelHistoryLimitBtn.addEventListener('click', () => toggleHistoryLimitEditMode(false));
+
+            // --- New: Event Listeners for Settings Admin Password Modal ---
+            closeSettingsAdminPasswordModalBtn.addEventListener('click', closeSettingsAdminPasswordModal);
+            settingsAdminPasswordModal.addEventListener('click', (event) => {
+                if (event.target === settingsAdminPasswordModal) {
+                    closeSettingsAdminPasswordModal();
+                }
+            });
+            confirmSettingsAdminPasswordBtn.addEventListener('click', handleSettingsAdminPasswordConfirm);
+            cancelSettingsAdminPasswordBtn.addEventListener('click', closeSettingsAdminPasswordModal);
 
 
             // Toggle between student list and student scores tables
